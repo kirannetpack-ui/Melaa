@@ -8,18 +8,20 @@ The application is packaged as Vercel static assets plus a Node.js function at `
 
 - Turso Cloud `melaa-db`, Starter (free) plan, connected to Production, Preview and Development. Environment variables: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`.
 - Private Vercel Blob store `melaa-media`, connected to the same project. Vercel supplies Blob credentials; do not commit them.
-- `MELAA_ADMIN_PASSWORD` must be a non-empty, unique 12+ character Production secret before running the full production migration. The current catalog-only migration intentionally did not create an admin account while that secret was empty. Never enter it into source control or chat. The production admin email is `admin@melaa.local`; replace it with a real controlled email and implement verified-email/MFA onboarding before a public release.
+- `MELAA_ADMIN_PASSWORD` must be a non-empty, unique 12+ character Production secret before the next production build. The catalog-only migration intentionally did not create an admin account; the Vercel CLI redacts Secret values in pulled environment files, so a blank local placeholder does not establish that the saved Production value is blank. Never enter it into source control or chat. The production admin email is `admin@melaa.local`; replace it with a real controlled email and implement verified-email/MFA onboarding before a public release.
 
-## One-time production migration
+## Production migration
 
-Run from the repository root, with Vercel CLI authenticated to the correct team:
+The production Vercel build runs `scripts/migrate.js` after bundling the browser uploader. This applies the schema and catalog and creates the first admin inside Vercel's environment, where the Production Secret is available. The migration is idempotent for the seed records, so subsequent production builds are safe, although a dedicated release migration job would be preferable as the project grows. A build fails if the Turso credentials or a 12+ character admin password are absent.
+
+For a manual migration from a trusted environment, supply actual credentials there and run `node scripts/migrate.js`. Do not expect `vercel env pull` to provide a Secret's value: it writes a redacted placeholder. For local catalog-only maintenance, with Turso credentials pulled to an ignored file, run:
 
 ```powershell
 vercel env pull .env.production.local --yes --environment production --scope kiran-thapa-s-projects
-npm run migrate:production
+npm run migrate:catalog
 ```
 
-The ignored `.env.production.local` file must contain non-empty Turso credentials and the admin password. The schema and catalog were already initialized with `npm run migrate:catalog`; the full command above adds the admin account and is safe to rerun for seed records. Production omits local demo sellers/products/posts. Set the password **before** first full migration; changing the environment variable later does not change an existing account password.
+The schema and catalog have already been initialized this way. Production omits local demo sellers/products/posts. Set the password **before** first full migration; changing the environment variable later does not change an existing account password.
 
 The `data/`, `.env*`, `.vercel/` and generated browser bundle are ignored by Git. Never commit pulled credentials. `npm test` covers local persistence and production-mode seed behavior.
 
