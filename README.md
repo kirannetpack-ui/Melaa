@@ -52,6 +52,8 @@ No payment is taken, no donation is transferred, and no recipient is presented a
 
 Before public deployment, follow [SECURITY.md](SECURITY.md), [CONTENT_SAFETY.md](CONTENT_SAFETY.md), [MARKETPLACE_OPERATIONS.md](MARKETPLACE_OPERATIONS.md), and [ADMIN_GUIDE.md](ADMIN_GUIDE.md). The prototype's styles, source-backed taxonomy and example content are design scaffolding, not a verified seller inventory.
 
+The GitHub repository and Vercel project are connected; see [DEPLOYMENT.md](DEPLOYMENT.md) for the paused production state and the exact backend migration required before launch.
+
 ## Social-commerce design direction
 
 The redesign treats content as the primary storefront: every story can tag a product, and commerce actions remain beside the maker, caption, comments and occasion. The marketplace and occasion catalog remain available for high-intent browsing, while the homepage is optimized for one-thumb discovery.
