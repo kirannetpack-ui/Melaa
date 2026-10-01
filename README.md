@@ -1,17 +1,17 @@
 # Melaa Nepal — social commerce development foundation
 
-An installable, responsive social-commerce web app and Node.js/SQLite API for discovering Nepalese makers through image and video stories, then shopping a tagged product without leaving the feed. This is a functional **development preview**, not a production marketplace or native Android/iOS release.
+An installable, responsive social-commerce web app and SQLite-compatible API for discovering Nepalese makers through image and video stories, then shopping a tagged product without leaving the feed. Local development uses a SQLite file; Vercel uses Turso and private Vercel Blob storage. This is a **protected preview**, not a public production marketplace or native Android/iOS release.
 
 ## Run on Windows in `C:\Codex\Melaa`
 
 1. Install Node.js 24 or newer.
-2. Extract the archive so `C:\Codex\Melaa\package.json` exists.
-3. Open PowerShell in `C:\Codex\Melaa` and run `npm start`.
+2. Run `npm install` in `C:\Codex\Melaa`.
+3. Run `npm start`.
 4. Open `http://localhost:3000` on the same computer.
 
 Run `npm test` to exercise social actions, seller approval, catalog governance, moderation, protected chat, shipping, commission, order, and contribution controls.
 
-No `npm install` is needed. The server uses Node's built-in SQLite. A fresh database is created at `data/melaa.sqlite` on first run. The UI is a progressive web app; compatible browsers can install it. For phone access on the same network, use the computer's LAN address and set appropriate firewall rules; installability and service workers generally require HTTPS outside localhost.
+A fresh local database is created at `data/melaa.sqlite` on first run. The UI is a progressive web app; compatible browsers can install it. For phone access on the same network, use the computer's LAN address and set appropriate firewall rules; installability and service workers generally require HTTPS outside localhost.
 
 Demo accounts for local development only:
 
@@ -30,7 +30,7 @@ Set `MELAA_ADMIN_PASSWORD` and `MELAA_SELLER_PASSWORD` **before the initial data
 - Mobile-first, Instagram-style discovery feed with maker story circles and Following / For You views.
 - Shoppable image and video posts with an in-post product card, price, stock state, one-tap add, product quick view and buy-now basket handoff.
 - Social actions: follow makers, like, comment, save, share, and open a lightweight maker profile without losing the feed.
-- Seller-friendly creation from the feed or account: mobile camera/file selection, local image/video upload, preview, caption, product tag and occasion tag.
+- Seller-friendly creation from the feed or account: mobile camera/file selection, local or private-cloud image/video upload, preview, caption, product tag and occasion tag.
 - Buyer/seller Messenger with product-linked threads, mobile chat layout, reporting, off-platform contact/payment blocking, admin visibility, message hiding, and conversation closure APIs.
 - A 58-category directory spanning culture/occasion, season/region, community/ethnicity, food/agriculture, and craft/fashion/home, plus 39 starter commodity guides linked to official editorial sources.
 - Signed-in category and commodity proposals held for admin approval.
@@ -44,7 +44,7 @@ Set `MELAA_ADMIN_PASSWORD` and `MELAA_SELLER_PASSWORD` **before the initial data
 - Recipient applications held in an admin review queue. Contributions are intentionally disabled.
 - Consolidated admin queues for seller identity, products, stories, catalog proposals and recorded moderation events.
 - Product and post reporting, account suspension, administrator media review, and restricted access to unapproved uploads.
-- SQLite persistence and a PWA shell.
+- SQLite-compatible persistence (local SQLite or hosted Turso), private Vercel Blob uploads, and a PWA shell.
 
 ## Deliberate launch gates
 
@@ -52,7 +52,7 @@ No payment is taken, no donation is transferred, and no recipient is presented a
 
 Before public deployment, follow [SECURITY.md](SECURITY.md), [CONTENT_SAFETY.md](CONTENT_SAFETY.md), [MARKETPLACE_OPERATIONS.md](MARKETPLACE_OPERATIONS.md), and [ADMIN_GUIDE.md](ADMIN_GUIDE.md). The prototype's styles, source-backed taxonomy and example content are design scaffolding, not a verified seller inventory.
 
-The GitHub repository and Vercel project are connected; see [DEPLOYMENT.md](DEPLOYMENT.md) for the paused production state and the exact backend migration required before launch.
+The GitHub repository and Vercel project are connected; see [DEPLOYMENT.md](DEPLOYMENT.md) for the protected deployment, migration procedure, and launch gates.
 
 ## Social-commerce design direction
 
@@ -60,7 +60,7 @@ The redesign treats content as the primary storefront: every story can tag a pro
 
 The interaction model follows current product-tagged social content, catalog-backed product information, visual-first seller creation, shoppable short video and touch-friendly controls. The included demo craft photographs are original AI-generated development assets in `public/media/`; replace them with seller-owned, consented and moderated media before launch.
 
-Uploaded preview media is stored under `data/uploads` by default. Set `MELAA_UPLOADS_PATH` to isolate that directory in tests or another environment. Accepted preview types are JPG, PNG and WebP up to 10 MB, and MP4 up to 25 MB. Basic signatures are checked and unapproved uploads require the owner's or admin's session. Production should use quarantined object storage, complete decoder validation, signed URLs, malware scanning, specialist content checks, derivative generation and lifecycle rules.
+Local preview media is stored under `data/uploads` by default. Set `MELAA_UPLOADS_PATH` to isolate that directory in tests or another environment. Vercel uses a private Blob store and browser-direct uploads up to 25 MB, followed by a signature check. Unapproved uploads require the owner's or admin's session; public access requires listing/post approval. Complete decoder validation, malware and specialist content scans, safe derivatives, lifecycle rules, and media-range/performance testing remain public-launch gates.
 
 ## Suggested next milestones
 

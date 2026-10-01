@@ -10,6 +10,7 @@ Automation alone cannot reliably identify every fake person, counterfeit product
 - A baseline text classifier blocks explicit sexual terms, counterfeit/deceptive claims, impersonation/fraud language, and off-platform contact/payment instructions in chat.
 - Buyers and sellers can report a conversation. Admins can read marketplace conversations, inspect moderation events, hide a message, and close a conversation through the API.
 - Rejected items retain a moderation note; admin decisions are auditable.
+- Cloud seller uploads are held in private Blob storage. Basic signatures are checked after upload, and only the owner/admin can fetch media before a linked item is approved.
 
 ## Production moderation layers
 

@@ -80,3 +80,30 @@ test('social, commerce, research, and contribution gates',async()=>{
   rmSync(temporary,{recursive:true,force:true});
  }
 });
+
+test('production seed keeps catalog but omits demo seller inventory',async()=>{
+ const folder=mkdtempSync(path.join(tmpdir(),'melaa-prod-test-'));
+ const productionPort=53000+Math.floor(Math.random()*8000);
+ const productionBase=`http://127.0.0.1:${productionPort}`;
+ const production=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,NODE_ENV:'production',VERCEL:'',PORT:String(productionPort),MELAA_ADMIN_PASSWORD:'UniqueTestPassword123!',MELAA_DB_PATH:path.join(folder,'production.sqlite'),MELAA_UPLOADS_PATH:path.join(folder,'uploads')},stdio:'ignore'});
+ try{
+  let response;
+  for(let attempt=0;attempt<100;attempt++){
+   try{response=await fetch(productionBase+'/api/bootstrap');if(response.ok)break}catch{}
+   await new Promise(resolve=>setTimeout(resolve,40));
+  }
+  assert.equal(response?.status,200);
+  const data=await response.json();
+  assert.equal(data.categories.length,58);
+  assert.equal(data.commodities.length,39);
+  assert.equal(data.products.length,0);
+  assert.equal(data.posts.length,0);
+  const login=await fetch(productionBase+'/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:'admin@melaa.local',password:'UniqueTestPassword123!'})});
+  assert.equal(login.status,200);
+  assert.match(login.headers.get('set-cookie'),/; Secure/);
+ }finally{
+  production.kill();
+  await new Promise(resolve=>production.once('close',resolve));
+  rmSync(folder,{recursive:true,force:true});
+ }
+});

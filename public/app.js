@@ -187,7 +187,7 @@ function home() {
       ${storyTray()}
       <div class="feed-tabs"><button class="${state.feedMode === 'for-you' ? 'active' : ''}" data-feed-mode="for-you">For you</button><button class="${state.feedMode === 'following' ? 'active' : ''}" data-feed-mode="following">Following</button></div>
       ${isSeller ? `<div class="composer-prompt"><span class="avatar">${initials(state.data.user.name)}</span><button data-open-compose>Share what you're making…</button><button class="media-shortcut" data-open-compose aria-label="Add photo or video">▧</button></div>` : ''}
-      ${posts.length ? posts.map(postCard).join('') : `<div class="empty">Follow a maker to build your personal feed.<br><button class="text-link" data-feed-mode="for-you">Explore all stories</button></div>`}
+      ${posts.length ? posts.map(postCard).join('') : allPosts.length ? `<div class="empty">Follow a maker to build your personal feed.<br><button class="text-link" data-feed-mode="for-you">Explore all stories</button></div>` : `<div class="empty">Melaa is welcoming its first makers. Explore the cultural catalog, or register as a seller to share your first story after admin review.<br><button class="text-link" data-view="shop">Explore categories</button></div>`}
     </section>
     <aside class="right-rail">
       <div class="rail-card"><span class="eyebrow">Happening now</span><h3>Explore by occasion</h3>
@@ -465,6 +465,10 @@ async function refresh({ keepPosition = false } = {}) {
 
 async function uploadFile(file) {
   if (!file) return null;
+  if (state.data?.cloud_uploads) {
+    const { uploadPrivateMedia } = await import('./blob-upload.js');
+    return uploadPrivateMedia(file);
+  }
   const response = await fetch('/api/media', { method: 'POST', headers: { 'content-type': file.type }, body: file });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Upload failed');

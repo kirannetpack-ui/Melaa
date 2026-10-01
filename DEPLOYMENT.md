@@ -1,18 +1,38 @@
-# GitHub and Vercel deployment state
+# Vercel deployment and launch state
 
-The source repository is [kirannetpack-ui/Melaa](https://github.com/kirannetpack-ui/Melaa) on `main`. The Vercel project is [Kiran Thapa's projects / melaa](https://vercel.com/kiran-thapa-s-projects/melaa), connected to that repository and its `main` branch.
+Source: [kirannetpack-ui/Melaa](https://github.com/kirannetpack-ui/Melaa), branch `main`. Vercel project: [kiran-thapa-s-projects/melaa](https://vercel.com/kiran-thapa-s-projects/melaa). Vercel project names must be lowercase, so the configured name is `melaa`.
 
-The Vercel production deployment is deliberately **paused**. Vercel's automatic build serves the static `public/` folder, but the current Node/SQLite backend does not run there. A check of `/api/bootstrap` on the Vercel deployment returned 404. Vercel documents that serverless functions do not provide a shared persistent local filesystem for SQLite; uploading this source unchanged would make registration, chat, admin decisions, orders, and uploads unreliable or unavailable. Do not resume or advertise the production URL as an operating marketplace.
+The application is packaged as Vercel static assets plus a Node.js function at `api/index.js`. The function uses a persistent Turso/libSQL database; seller photos/videos use a private Vercel Blob store. A preview deployment has returned HTTP 200 from both `/` and `/api/bootstrap`, and unauthenticated `/api/admin` returns 401. The hosted database already contains 58 categories, 39 commodity guides and 12 occasion records, with no demo seller inventory. The Vercel project remains paused for general access while admin onboarding and safety checks are completed. Do not advertise it as an operating marketplace or resume it solely because the build reports Ready.
 
-The local development app remains usable with Node 24 and `npm start`. The full source, tests, data schema, demo media, and operating guides are in GitHub. Local `data/` and `.vercel/` are ignored and were not pushed.
+## Provisioned resources
 
-## Work needed for a Vercel launch
+- Turso Cloud `melaa-db`, Starter (free) plan, connected to Production, Preview and Development. Environment variables: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`.
+- Private Vercel Blob store `melaa-media`, connected to the same project. Vercel supplies Blob credentials; do not commit them.
+- `MELAA_ADMIN_PASSWORD` must be a non-empty, unique 12+ character Production secret before running the full production migration. The current catalog-only migration intentionally did not create an admin account while that secret was empty. Never enter it into source control or chat. The production admin email is `admin@melaa.local`; replace it with a real controlled email and implement verified-email/MFA onboarding before a public release.
 
-1. Choose a persistent managed database. Vercel Marketplace supports Postgres integrations such as Neon, Supabase and Aurora, and a Turso integration for remotely hosted SQLite. Migrate this synchronous `node:sqlite` API to the chosen remote client and use formal schema migrations.
-2. Convert the Node HTTP server to Vercel Functions or another durable backend behind the Vercel frontend. Preserve server-side authorization, moderation, and rate controls.
-3. Move photo/video uploads to quarantined object storage with signed access, virus scanning, image/video moderation and approved-publication gates. A local upload folder is not durable on Vercel.
-4. Configure production secrets and identity verification. The app currently refuses to start in production without unique `MELAA_ADMIN_PASSWORD` and `MELAA_SELLER_PASSWORD`; remove seed accounts and demo content before real onboarding.
-5. Connect a licensed marketplace payment provider, tax/fulfillment rules, signed webhooks, ledger/reconciliation, refunds, disputes and payout holds. Checkout intentionally does not collect money yet.
-6. Run the security, content-safety, accessibility, privacy and legal reviews in the other guides; verify all endpoints on a protected preview, then resume the Vercel project.
+## One-time production migration
 
-Vercel references: [SQLite limitation](https://vercel.com/kb/guide/is-sqlite-supported-in-vercel), [Marketplace storage](https://vercel.com/docs/marketplace-storage), [Git deployments](https://vercel.com/docs/git), [pause and resume](https://vercel.com/docs/projects/managing-projects).
+Run from the repository root, with Vercel CLI authenticated to the correct team:
+
+```powershell
+vercel env pull .env.production.local --yes --environment production --scope kiran-thapa-s-projects
+npm run migrate:production
+```
+
+The ignored `.env.production.local` file must contain non-empty Turso credentials and the admin password. The schema and catalog were already initialized with `npm run migrate:catalog`; the full command above adds the admin account and is safe to rerun for seed records. Production omits local demo sellers/products/posts. Set the password **before** first full migration; changing the environment variable later does not change an existing account password.
+
+The `data/`, `.env*`, `.vercel/` and generated browser bundle are ignored by Git. Never commit pulled credentials. `npm test` covers local persistence and production-mode seed behavior.
+
+## Deployment verification
+
+1. Run `npm test` and `npm run build` locally.
+2. Deploy a protected preview (`vercel deploy --yes --scope kiran-thapa-s-projects`) or push to GitHub and inspect the automatic deployment.
+3. Verify `/`, `/api/bootstrap` (58 categories, 39 commodities), `/api/admin` (401 when signed out), registration/login, seller pending/approval, private media upload, post/product approval, chat/reporting, order creation without payment, and admin audit views.
+4. Check security headers, mobile layout, errors, logs and quota usage. Confirm that private media cannot be fetched before approval and that an unverified seller cannot upload.
+5. Retain deployment protection until identity verification, automated media/malware scanning, independent security review, privacy/legal review and licensed payment/fulfillment integrations are complete. A working preview is **not** authorization to operate a public marketplace.
+
+## Payments and moderation
+
+Checkout intentionally records only `awaiting_payment` orders. No funds, donations or payouts are moved. Commission is a projected accounting field, not revenue collected. Private uploads and text rules plus admin review are baseline controls; they cannot guarantee that all counterfeit goods, fake identities or illegal content are detected.
+
+References: [Vercel Functions](https://vercel.com/docs/functions/runtimes/node-js), [Turso on Vercel](https://vercel.com/marketplace/tursocloud/database), [private Blob storage](https://vercel.com/docs/vercel-blob/private-storage), [client uploads](https://vercel.com/docs/vercel-blob/client-upload), [Function body limits](https://vercel.com/docs/functions/limitations).

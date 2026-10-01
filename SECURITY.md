@@ -12,16 +12,16 @@ This repository implements a defensive development baseline, not a guarantee of 
 - Non-GET cross-origin requests are rejected. API write rates and authentication attempts are bounded.
 - CSP, frame denial, MIME sniffing prevention, referrer, permissions, and cross-origin resource headers are set. Production responses add HSTS.
 - Product, post, category, commodity, chat, and admin-review states are enforced on the server; hiding a button is never the access control.
-- Upload type and size are constrained. Uploaded paths are randomized and traversal is rejected.
+- Upload type and size are constrained. Uploaded paths are randomized and traversal is rejected. Vercel uploads go to private Blob storage, are checked for basic file signatures, and are served only through the app's approval/ownership gate.
 - Admin decisions and selected moderation actions are written to audit or moderation records.
 
 ## Required before Internet launch
 
-1. Put the app behind a supported TLS reverse proxy/WAF, isolate the database and uploads, and run the process as a non-privileged service account.
-2. Replace local media storage with quarantined object storage. Verify file signatures, decode/re-encode media, scan malware, strip metadata, create safe derivatives, and block access until moderation completes.
+1. Keep Vercel deployment protection enabled until independent security and abuse reviews pass. Configure WAF/bot controls and alerting before opening registration publicly.
+2. The private Blob store is only a quarantine foundation. Decode/re-encode media, scan malware, strip metadata, create safe derivatives, and add specialist image/video checks before public launch.
 3. Add verified email/phone, MFA for admins, account recovery, session/device management, credential breach screening, and a modern identity provider if practical.
 4. Move rate limits and sessions to a shared durable store. Add bot controls, device/risk signals, IP reputation, and alerting.
-5. Use a managed relational database with encrypted backups, point-in-time recovery, least-privilege credentials, schema migrations, and tested restore drills.
+5. Turso provides managed persistent storage for Vercel. Add versioned migrations, least-privilege credentials, backup/restore drills, and a recovery runbook.
 6. Add structured logs without secrets, security monitoring, dependency/SAST/DAST/secret scanning, incident playbooks, data-retention rules, and breach-notification procedures.
 7. Contract a PCI-compliant marketplace payment provider. Never store card data here. Use signed webhooks, idempotency keys, double-entry ledgers, reconciliation, disputes, refunds, reserves, and controlled payouts.
 8. Obtain independent threat modeling, accessibility testing, privacy/legal review, and penetration testing before launch and after material changes.
