@@ -6,7 +6,7 @@ This repository implements a defensive development baseline, not a guarantee of 
 
 - Passwords are salted and derived with Node.js `scrypt`; passwords must be 12+ characters and contain upper-case, lower-case, and numeric characters.
 - Session tokens contain 256 bits of randomness, are stored as SHA-256 hashes, expire after seven days, and use `HttpOnly`, `SameSite=Strict`, and production-only `Secure` cookies.
-- Inactive accounts cannot authenticate. Repeated login failures are throttled and recorded.
+- Inactive accounts cannot authenticate. Repeated login failures are throttled and recorded; shared Turso-backed limits now bound account requests and chat sending across Vercel instances.
 - Role checks protect buyer, verified-seller, and admin actions. New sellers remain pending until an admin verifies them.
 - All database values are passed through prepared statements. Dynamic SQL is restricted to server-owned allowlists.
 - Non-GET cross-origin requests are rejected. API write rates and authentication attempts are bounded.
@@ -20,7 +20,7 @@ This repository implements a defensive development baseline, not a guarantee of 
 1. Keep Vercel deployment protection enabled until independent security and abuse reviews pass. Configure WAF/bot controls and alerting before opening registration publicly.
 2. The private Blob store is only a quarantine foundation. Decode/re-encode media, scan malware, strip metadata, create safe derivatives, and add specialist image/video checks before public launch.
 3. Add verified email/phone, MFA for admins, account recovery, session/device management, credential breach screening, and a modern identity provider if practical.
-4. Move rate limits and sessions to a shared durable store. Add bot controls, device/risk signals, IP reputation, and alerting.
+4. Review and tune shared rate limits under load; add bot controls, device/risk signals, IP reputation, and alerting. Sessions are already stored in the shared database, but device/session management and stronger abuse controls remain absent.
 5. Turso provides managed persistent storage for Vercel. Add versioned migrations, least-privilege credentials, backup/restore drills, and a recovery runbook.
 6. Add structured logs without secrets, security monitoring, dependency/SAST/DAST/secret scanning, incident playbooks, data-retention rules, and breach-notification procedures.
 7. Contract a PCI-compliant marketplace payment provider. Never store card data here. Use signed webhooks, idempotency keys, double-entry ledgers, reconciliation, disputes, refunds, reserves, and controlled payouts.

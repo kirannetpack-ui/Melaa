@@ -19,7 +19,7 @@ A balanced launch model is:
 
 The strongest defense is useful infrastructure, not dark patterns.
 
-1. Use a marketplace payment product that creates a destination/seller charge and retains an application fee. Release seller proceeds after delivery or the configured risk window.
+1. Contract a Nepal-eligible, licensed payment provider with a documented marketplace/settlement arrangement that retains the agreed Melaa fee and pays sellers under a stated schedule. Do not assume a global provider can serve a Nepal-based platform.
 2. Keep product inquiry, offer, order, receipt, shipment, refund, dispute, and support history in one timeline.
 3. Block contact details, external links, and off-platform payment requests in pre-order chat; provide an appeal when a legitimate address is needed after purchase.
 4. Make buyer protection, verified reviews, fraud monitoring, shipment tracking, refunds, and seller payout eligibility conditional on an on-platform order.
@@ -35,7 +35,10 @@ Use a licensed provider's marketplace/connected-account flow so customer funds a
 
 Useful models and requirements:
 
-- Stripe Connect application fees/destination charges: https://stripe.com/connect/marketplaces
+- Stripe Connect application fees/destination charges (architectural example only, not an available Nepal integration): https://docs.stripe.com/connect/destination-charges
+- Stripe country availability (Nepal is not listed as of October 2026): https://stripe.com/global
+- Nepal Rastra Bank's current list of licensed PSOs and PSPs: https://www.nrb.org.np/departments/psd/
+- eSewa merchant integration documentation (ordinary merchant payments; marketplace split settlement is not established by this documentation): https://developer.esewa.com.np/pages/Introduction
 - Airbnb off-platform communication/payment protections: https://www.airbnb.com/help/article/209
 - Upwork circumvention rationale: https://support.upwork.com/hc/en-us/articles/360048105134-Why-you-shouldn-t-get-paid-outside-Upwork
 - EU Digital Services Act trader traceability: https://eur-lex.europa.eu/eli/reg/2022/2065/oj

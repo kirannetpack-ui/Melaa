@@ -7,8 +7,8 @@ Automation alone cannot reliably identify every fake person, counterfeit product
 - Seller accounts start in `pending`; only an admin can mark them `verified`.
 - Seller products and stories start in `review`; only approved records reach the public catalog/feed.
 - Category and commodity proposals start in `review` and require admin approval.
-- A baseline text classifier blocks explicit sexual terms, counterfeit/deceptive claims, impersonation/fraud language, and off-platform contact/payment instructions in chat.
-- Buyers and sellers can report a conversation. Admins can read marketplace conversations, inspect moderation events, hide a message, and close a conversation through the API.
+- A baseline text classifier blocks explicit sexual terms, counterfeit/deceptive claims, impersonation/fraud language, and off-platform contact/payment instructions in chat. Unicode normalization catches some simple obfuscation, but text filters remain easy to evade and can produce false positives.
+- Buyers and sellers can report a conversation or individual message. Admins can read marketplace conversations, inspect a prioritized open-report queue, hide a message, close a conversation, and record report resolution. Participants see unread counts and chats refresh while open.
 - Rejected items retain a moderation note; admin decisions are auditable.
 - Cloud seller uploads are held in private Blob storage. Basic signatures are checked after upload, and only the owner/admin can fetch media before a linked item is approved.
 
@@ -30,6 +30,7 @@ This list is not complete. Create jurisdiction-specific rules with counsel and d
 ## External safety references
 
 - eSafety Safety by Design: https://www.esafety.gov.au/industry/safety-by-design/industry-guides
+- eSafety user reporting at the point of harm: https://www.esafety.gov.au/industry/safety-by-design/foundations/empowering-users-to-stay-safe-online
 - eSafety illegal/restricted content workflow: https://www.esafety.gov.au/industry/safety-by-design/foundations/dealing-with-illegal-and-restricted-online-content
 - Internet Watch Foundation hash services: https://www.iwf.org.uk/our-technology/our-services/
 - INTERPOL counterfeit shopping guidance: https://www.interpol.int/Crimes/Illicit-goods/Shop-safely

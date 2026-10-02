@@ -66,8 +66,18 @@ test('social, commerce, research, and contribution gates',async()=>{
 	  const conversation=await request('/conversations/start',{product_id:1},buyer.cookie);
 	  assert.equal(conversation.status,200);
 	  assert.equal((await request('/conversations/message',{conversation_id:conversation.data.id,body:'Can I pay you directly on WhatsApp?'},buyer.cookie)).status,422);
+	  assert.equal((await request('/conversations/message',{conversation_id:conversation.data.id,body:'Find me on Whats\u200bApp'},buyer.cookie)).status,422);
 	  assert.equal((await request('/conversations/message',{conversation_id:conversation.data.id,body:'Is this available in blue?'},buyer.cookie)).status,201);
+	  assert.equal((await request('/conversations',undefined,seller.cookie)).data.conversations[0].unread,1);
 	  assert.equal((await request('/conversations/messages?conversation_id='+conversation.data.id,undefined,seller.cookie)).data.messages[0].body,'Is this available in blue?');
+	  assert.equal((await request('/conversations',undefined,seller.cookie)).data.conversations[0].unread,0);
+	  assert.equal((await request('/conversations/report',{conversation_id:conversation.data.id,message_id:1,reason:'This message needs review'},seller.cookie)).status,201);
+	  const adminQueue=(await request('/admin',undefined,admin.cookie)).data.moderation;
+	  const chatReport=adminQueue.find(item=>item.surface==='conversation'&&item.action==='queued');
+	  assert.ok(chatReport);
+	  assert.equal((await request('/conversations',undefined,admin.cookie)).data.conversations[0].flags,1);
+	  assert.equal((await request('/admin/moderation',{id:chatReport.id,action:'resolved'},admin.cookie)).status,200);
+	  assert.equal((await request('/admin',undefined,admin.cookie)).data.moderation.find(item=>item.id===chatReport.id).action,'resolved');
 	  assert.equal((await request('/conversations',undefined,admin.cookie)).data.conversations.length,1);
 	  assert.equal((await request('/reports',{surface:'product',id:1,reason:'Suspected fake origin claim'},buyer.cookie)).status,201);
 	  const pendingSeller=await request('/register',{name:'New Maker',email:'newmaker@test.local',password:'StrongPassword123',role:'seller'});

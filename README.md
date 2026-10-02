@@ -31,14 +31,14 @@ Set `MELAA_ADMIN_PASSWORD` and `MELAA_SELLER_PASSWORD` **before the initial data
 - Shoppable image and video posts with an in-post product card, price, stock state, one-tap add, product quick view and buy-now basket handoff.
 - Social actions: follow makers, like, comment, save, share, and open a lightweight maker profile without losing the feed.
 - Seller-friendly creation from the feed or account: mobile camera/file selection, local or private-cloud image/video upload, preview, caption, product tag and occasion tag.
-- Buyer/seller Messenger with product-linked threads, mobile chat layout, reporting, off-platform contact/payment blocking, admin visibility, message hiding, and conversation closure APIs.
+- Buyer/seller Messenger with product-linked threads, mobile chat layout, unread counts, periodic refresh, message/conversation reporting, a prioritized admin report queue, off-platform contact/payment blocking, admin visibility, message hiding, and conversation closure APIs.
 - A 58-category directory spanning culture/occasion, season/region, community/ethnicity, food/agriculture, and craft/fashion/home, plus 39 starter commodity guides linked to official editorial sources.
 - Signed-in category and commodity proposals held for admin approval.
 - Product and story review queues: pending content never reaches the public marketplace/feed.
 - Product creation with a product photo and approved category; occasion browsing, global search, marketplace search and category filters.
 - Wholesale quote requests and an in-place basket with provisional delivery quotes.
 - Cart and provisional shipping quote using actual versus volumetric weight, admin-configured zones and rates.
-- Pending order recording, configurable retail/wholesale commission and payout-hold settings, per-line projected commission, and account history.
+- Pending order recording, configurable retail/wholesale commission and payout-hold settings, per-line projected commission, seller fee disclosure, and account history. These are accounting projections, not collected fees.
 - Personal event saving with an illustrative order-by planning date.
 - Community occasion suggestions held for research; admin-cited, BS-year-specific Gregorian dates with review audit entries.
 - Recipient applications held in an admin review queue. Contributions are intentionally disabled.
@@ -52,7 +52,7 @@ No payment is taken, no donation is transferred, and no recipient is presented a
 
 Before public deployment, follow [SECURITY.md](SECURITY.md), [CONTENT_SAFETY.md](CONTENT_SAFETY.md), [MARKETPLACE_OPERATIONS.md](MARKETPLACE_OPERATIONS.md), and [ADMIN_GUIDE.md](ADMIN_GUIDE.md). The prototype's styles, source-backed taxonomy and example content are design scaffolding, not a verified seller inventory.
 
-The GitHub repository and Vercel project are connected; see [DEPLOYMENT.md](DEPLOYMENT.md) for the protected deployment, migration procedure, and launch gates.
+The GitHub repository and Vercel project are connected; see [FEATURE_STATUS.md](FEATURE_STATUS.md) for completed versus remaining functions and [DEPLOYMENT.md](DEPLOYMENT.md) for the protected deployment, migration procedure, and launch gates.
 
 ## Social-commerce design direction
 
