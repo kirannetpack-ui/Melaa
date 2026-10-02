@@ -47,6 +47,10 @@ img, video { display: block; max-width: 100%; }
 .desktop-nav button small { font-size: 10px; font-weight: 700; }
 .desktop-nav button:hover, .desktop-nav .nav-active { color: var(--wine); background: #f6ede7; }
 .top-actions { display: flex; align-items: center; }
+.messenger-shortcut { position: relative; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px; background: var(--wine) !important; color: white !important; }
+.messenger-shortcut:hover,.messenger-shortcut.nav-active { background: var(--wine-deep) !important; }
+.messenger-icon { display: block; width: 25px; height: 25px; flex: none; }
+.messenger-count { position: absolute; top: 0; right: -3px; min-width: 18px; height: 18px; padding: 0 3px; display: grid; place-items: center; border-radius: 99px; background: var(--terracotta); color: white; font: 700 10px/1 'DM Sans',sans-serif; box-shadow: 0 0 0 2px var(--paper); }
 .cart-button { position: relative; min-width: 46px; min-height: 46px; font-size: 22px; }
 .cart-button b { position: absolute; top: 1px; right: 0; min-width: 19px; height: 19px; display: grid; place-items: center; border-radius: 99px; background: var(--wine); color: #fff; font-size: 10px; }
 
@@ -254,7 +258,9 @@ img, video { display: block; max-width: 100%; }
   .global-search { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border: 0; background: none; }
   .global-search > span:last-child { display: none; }
   .desktop-nav { display: none; }
-  .top-actions { grid-column: 3; }
+  .top-actions { grid-column: 3; gap: 5px; }
+  .messenger-shortcut { width: 40px; height: 40px; border-radius: 12px; }
+  .messenger-shortcut .messenger-icon { width: 23px; height: 23px; }
   .social-shell { width: 100%; margin: 0 auto 30px; display: block; }
   .social-sidebar { display: none; }
   .feed-column { width: 100%; }
@@ -271,6 +277,9 @@ img, video { display: block; max-width: 100%; }
   .mobile-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; min-height: 64px; display: flex; align-items: center; justify-content: space-around; padding: 5px 8px max(5px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: rgba(255, 253, 249, .97); backdrop-filter: blur(16px); }
   .mobile-nav button { min-width: 54px; min-height: 50px; display: grid; place-items: center; align-content: center; gap: 1px; border-radius: 12px; }
   .mobile-nav button > span { font-size: 21px; }
+  .mobile-nav button[data-view="messages"] { position: relative; }
+  .mobile-nav .messenger-icon { width: 23px; height: 23px; }
+  .mobile-nav .messenger-count { top: 0; right: 3px; }
   .mobile-nav button small { font-size: 9px; font-weight: 700; }
   .mobile-nav .nav-active { color: var(--wine); background: #f4e9e1; }
   .mobile-nav .mobile-create > span { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 12px; background: var(--wine); color: white; }

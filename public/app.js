@@ -43,6 +43,21 @@ function toast(message) {
   toast.timer = setTimeout(() => element.classList.add('hidden'), 3600);
 }
 
+function updateMessengerBadge() {
+  const unread = state.data?.user?.role === 'admin' ? 0 : state.conversations.reduce((sum, item) => sum + Number(item.unread || 0), 0);
+  document.querySelectorAll('.messenger-count').forEach(badge => {
+    badge.textContent = unread > 9 ? '9+' : String(unread);
+    badge.classList.toggle('hidden', unread === 0);
+  });
+  document.querySelectorAll('[data-view="messages"]').forEach(button => button.setAttribute('aria-label', unread ? `Open Messenger, ${unread} unread messages` : 'Open Messenger'));
+}
+
+async function syncMessengerBadge() {
+  if (!state.data?.user) { state.conversations = []; updateMessengerBadge(); return; }
+  try { state.conversations = (await api('/conversations')).conversations; updateMessengerBadge(); }
+  catch { /* Background status must not interrupt shopping. */ }
+}
+
 function saveCart() {
   localStorage.setItem('melaa-cart', JSON.stringify(state.cart));
   $('#cart-count').textContent = state.cart.reduce((sum, item) => sum + item.qty, 0);
@@ -441,6 +456,7 @@ function renderSearchResults(query) {
 async function loadConversations(selectId = state.activeConversation) {
   try {
     const data=await api('/conversations');state.conversations=data.conversations;
+    updateMessengerBadge();
     const list=$('#conversation-list');if(!list)return;
     list.innerHTML=data.conversations.length?data.conversations.map(item=>{const other=state.data.user.role==='seller'?item.buyer:item.seller;return `<button class="conversation ${Number(selectId)===item.id?'active':''}" data-conversation="${item.id}"><span class="avatar">${initials(other)}</span><span><b>${esc(other)}</b><small>${esc(item.product||'General conversation')}</small><em>${esc(item.last_message||'Start the conversation')}</em></span>${item.unread?`<i aria-label="${item.unread} unread messages">${item.unread}</i>`:item.flags?`<i aria-label="${item.flags} flagged messages">!</i>`:''}</button>`}).join(''):'<div class="empty">No conversations yet. Open a product to message its seller.</div>';
     if(selectId)await openConversation(selectId);
@@ -449,7 +465,9 @@ async function loadConversations(selectId = state.activeConversation) {
 
 async function openConversation(id) {
   const data=await api(`/conversations/messages?conversation_id=${id}`);state.activeConversation=Number(id);
+  const current=state.conversations.find(item=>item.id===Number(id));if(current)current.unread=0;updateMessengerBadge();
   document.querySelectorAll('[data-conversation]').forEach(x=>x.classList.toggle('active',Number(x.dataset.conversation)===Number(id)));
+  document.querySelector(`[data-conversation="${Number(id)}"] i[aria-label$="unread messages"]`)?.remove();
   const meta=state.conversations.find(x=>x.id===Number(id)),panel=$('#chat-panel');if(!panel)return;
   panel.innerHTML=`<header class="chat-head"><div><b>${esc(meta?.product||'Marketplace conversation')}</b><span>${esc(meta?.buyer||'')} ↔ ${esc(meta?.seller||'')}</span></div><div>${state.data.user.role==='admin'?`<button class="text-link" data-conversation-status="${data.conversation.status==='open'?'closed':'open'}" data-id="${id}">${data.conversation.status==='open'?'Close':'Reopen'} chat</button>`:`<button class="text-link" data-report-conversation="${id}">Report</button>`}</div></header><div class="chat-safety">Protected Melaa chat · avoid contact details. Checkout is currently a no-payment order request.</div><div class="message-stream">${data.messages.length?data.messages.map(m=>`<div class="bubble ${m.sender_id===state.data.user.id?'mine':''} ${m.hidden?'removed':''}"><b>${esc(m.sender)}</b><p>${esc(m.body)}</p><small>${esc(m.created_at)}</small>${m.flagged?'<span class="message-flag">Flagged for review</span>':''}${state.data.user.role==='admin'?`<button class="text-link" data-hide-message="${m.id}" data-hidden="${m.hidden?0:1}">${m.hidden?'Restore':'Hide'}</button>`:m.sender_id!==state.data.user.id?`<button class="text-link" data-report-message="${m.id}" data-conversation-id="${id}">Report</button>`:''}</div>`).join(''):'<div class="empty">Ask about materials, availability, customization or delivery.</div>'}</div>${data.conversation.status==='open'&&state.data.user.role!=='admin'?`<form id="message-form" data-id="${id}" class="message-composer"><textarea name="body" maxlength="1000" placeholder="Write a message…" required></textarea><button class="btn">Send</button></form>`:`<div class="notice">This conversation is ${esc(data.conversation.status)}.</div>`}`;
   panel.querySelector('.message-stream')?.scrollTo({top:100000,behavior:'instant'});
@@ -465,6 +483,7 @@ async function refresh({ keepPosition = false } = {}) {
   state.data = await api('/bootstrap');
   render(!keepPosition);
   saveCart();
+  await syncMessengerBadge();
   if (keepPosition) window.scrollTo({ top: y, behavior: 'instant' });
 }
 
@@ -635,7 +654,7 @@ document.addEventListener('click', event => {
 
 document.addEventListener('submit', async event => {
   const form = event.target;
-  const accepted = ['login-form', 'register-form', 'event-form', 'rfq-form', 'product-form', 'post-form', 'rate-form', 'cause-form', 'comment-form', 'suggest-form', 'occasion-date-form', 'settings-form', 'category-proposal-form', 'commodity-proposal-form', 'message-form', 'report-form'];
+  const accepted = ['login-form', 'register-form', 'event-form', 'rfq-form', 'product-form', 'post-form', 'rate-form', 'cause-form', 'comment-form', 'suggest-form', 'occasion-date-form', 'settings-form', 'category-proposal-form', 'commodity-proposal-form', 'message-form', 'chat-report-form', 'report-form'];
   if (!accepted.includes(form.id) && !form.classList.contains('quick-comment')) return;
   event.preventDefault();
   const data = Object.fromEntries(new FormData(form));
@@ -702,6 +721,7 @@ document.addEventListener('submit', async event => {
 try {
   await refresh();
   setInterval(()=>{if(state.view==='messages'&&document.visibilityState==='visible'&&!$('#message-form textarea')?.value)loadConversations(state.activeConversation)},12000);
+  setInterval(()=>{if(state.view!=='messages'&&document.visibilityState==='visible')syncMessengerBadge()},30000);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 } catch (error) {
   $('#content').innerHTML = `<div class="app-error">The application could not load: ${esc(error.message)}</div>`;
