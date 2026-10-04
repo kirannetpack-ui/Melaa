@@ -4,7 +4,11 @@ Melaa should earn transparently for services customers value. It should not make
 
 ## Recommended commercial model
 
-The current build stores a configurable retail commission (default 10%), wholesale commission (default 6%), buyer-protection percentage (default 0%), and payout hold (default seven days). The recorded commission is calculated per order line so it can be reconciled per seller.
+The current build stores a configurable retail commission (default **5%**), wholesale commission (default **3%**), buyer-protection percentage (default 0%), and payout hold (default seven days). The recorded retail commission is calculated per order line on merchandise only; it is a projection on an unpaid order, not revenue. Wholesale is still a quote request, so **no wholesale fee is booked or collected**. An untouched 10%/6% deployment default is migrated to 5%/3%; admin-modified rates are preserved.
+
+Three percent is the safer wholesale starting proposal. Two percent should be a negotiated volume rate only after a Nepal-licensed settlement partner quotes actual processing, refund and chargeback costs and Melaa measures support/moderation cost. For example, a NPR 10,000 merchandise sale produces a projected NPR 500 retail fee or NPR 300 standard wholesale fee **before** provider costs, tax and operating expense; this is not profit. Sellers set their own displayed prices. Shipping and tax are excluded from the percentage; discounts, refunds, provider fees and reversals require a reconciled ledger and counsel-reviewed rules before money moves.
+
+Seller registration now shows six short clauses and requires explicit, unchecked acceptance. The accepted version and timestamp are saved. If the admin changes a rate, the terms version changes and a seller must accept again before publishing. Existing sellers without current acceptance are prompted in their account. The clauses are a launch draft requiring Nepalese counsel review, not an assertion of legal sufficiency.
 
 A balanced launch model is:
 
@@ -14,6 +18,7 @@ A balanced launch model is:
 - Use optional paid visibility or seller subscriptions only when clearly labeled. Never make organic reach secretly pay-to-play.
 - Hold payout only for a stated protection/fraud window; show the expected release date and reason for any exception.
 - Offer seller data export, notice of material fee changes, accessible disputes, and proportionate suspension/appeal processes.
+- Keep community “recommend” signals separate from verified-purchase reviews. Do not buy or secretly boost recommendations; disclose any material seller relationship if testimonial features are later added.
 
 ## Making bypass less attractive
 
@@ -43,5 +48,7 @@ Useful models and requirements:
 - Upwork circumvention rationale: https://support.upwork.com/hc/en-us/articles/360048105134-Why-you-shouldn-t-get-paid-outside-Upwork
 - EU Digital Services Act trader traceability: https://eur-lex.europa.eu/eli/reg/2022/2065/oj
 - US FTC INFORM Consumers Act guidance: https://www.ftc.gov/business-guidance/resources/what-third-party-sellers-need-know-about-inform-consumers-act
+- US FTC guidance on truthful recommendations and material-connection disclosures (comparative design reference, not Nepal law): https://www.ftc.gov/business-guidance/advertising-marketing/endorsements-influencers-reviews
+- Vercel limits: Functions cannot host WebSocket servers, so true live commerce needs a separate real-time streaming service and moderation workflow: https://vercel.com/docs/limits
 
 These examples are operational references, not Nepal-specific legal advice. Nepal tax, payment, consumer, privacy, e-commerce, export, fundraising, and foreign-exchange requirements need local counsel and licensed providers.

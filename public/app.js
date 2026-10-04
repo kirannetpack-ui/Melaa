@@ -11,6 +11,12 @@ const state = {
   filter: 'All',
   query: '',
   feedMode: 'for-you',
+  feedQuery: '',
+  feedPosts: [],
+  feedOffset: 0,
+  feedHasMore: true,
+  feedLoading: false,
+  feedGeneration: 0,
   cart: JSON.parse(localStorage.getItem('melaa-cart') || '[]'),
   zone: 'Kathmandu Valley',
   ship: null,
@@ -146,11 +152,12 @@ function postCard(item) {
         <button class="icon-action ${item.liked ? 'liked' : ''}" data-like="${item.id}" aria-label="${item.liked ? 'Unlike' : 'Like'} post" aria-pressed="${Boolean(item.liked)}">${item.liked ? '♥' : '♡'}</button>
         <button class="icon-action" data-comments="${item.id}" aria-label="Comment on post">◯</button>
         <button class="icon-action" data-share="${item.id}" aria-label="Share post">⌁</button>
+        ${!own ? `<button class="icon-action ${item.recommended ? 'recommended' : ''}" data-recommend="${item.id}" aria-label="${item.recommended ? 'Remove recommendation' : 'Recommend this story'}" aria-pressed="${Boolean(item.recommended)}" title="Recommend to the Melaa community">${item.recommended ? '✦' : '✧'}</button><button class="icon-action" data-suggest-seller="${item.id}" aria-label="Suggest an idea to the seller" title="Suggest to seller">♧</button>` : ''}
         ${item.product_id && !own ? `<button class="icon-action" data-message-product="${item.product_id}" aria-label="Message seller">✉</button>` : ''}
         ${!own ? `<button class="icon-action" data-report="post" data-id="${item.id}" aria-label="Report post">⚑</button>` : ''}
         <button class="icon-action save-action" data-save="${item.id}" aria-label="${item.saved ? 'Remove from saved' : 'Save post'}" aria-pressed="${Boolean(item.saved)}">${item.saved ? '▣' : '▢'}</button>
       </div>
-      <div class="like-count">${Number(item.likes).toLocaleString()} ${Number(item.likes) === 1 ? 'like' : 'likes'}</div>
+      <div class="like-count">${Number(item.likes).toLocaleString()} ${Number(item.likes) === 1 ? 'like' : 'likes'} · ${Number(item.recommendations||0)} ${Number(item.recommendations||0) === 1 ? 'recommendation' : 'recommendations'} <span class="subtle">· Member signals, not verified purchases</span></div>
       <p class="caption"><b>${esc(item.author)}</b>${esc(item.caption)}</p>
       ${shoppableTag(item)}
       <button class="comment-link" data-comments="${item.id}">View ${item.comments || 0} ${Number(item.comments) === 1 ? 'comment' : 'comments'}</button>
@@ -182,8 +189,7 @@ function storyTray() {
 }
 
 function home() {
-  const allPosts = state.data.posts;
-  const posts = state.feedMode === 'following' ? allPosts.filter(item => item.following || item.author_id === state.data.user?.id) : allPosts;
+  const posts = state.feedPosts;
   const isSeller = ['seller', 'admin'].includes(state.data.user?.role);
   return `<div class="social-shell">
     <aside class="social-sidebar">
@@ -201,8 +207,10 @@ function home() {
     <section class="feed-column" aria-label="Discovery feed">
       ${storyTray()}
       <div class="feed-tabs"><button class="${state.feedMode === 'for-you' ? 'active' : ''}" data-feed-mode="for-you">For you</button><button class="${state.feedMode === 'following' ? 'active' : ''}" data-feed-mode="following">Following</button></div>
+      <label class="feed-search-label">Find stories <input id="feed-search" class="search" type="search" maxlength="80" placeholder="Try Dhaka, Tihar, pottery…" value="${esc(state.feedQuery)}"></label>
       ${isSeller ? `<div class="composer-prompt"><span class="avatar">${initials(state.data.user.name)}</span><button data-open-compose>Share what you're making…</button><button class="media-shortcut" data-open-compose aria-label="Add photo or video">▧</button></div>` : ''}
-      ${posts.length ? posts.map(postCard).join('') : allPosts.length ? `<div class="empty">Follow a maker to build your personal feed.<br><button class="text-link" data-feed-mode="for-you">Explore all stories</button></div>` : `<div class="empty">Melaa is welcoming its first makers. Explore the cultural catalog, or register as a seller to share your first story after admin review.<br><button class="text-link" data-view="shop">Explore categories</button></div>`}
+      <div id="feed-list">${posts.map(postCard).join('')}</div><div id="feed-status" class="feed-status" aria-live="polite">${state.feedLoading ? 'Loading stories…' : ''}</div><div id="feed-sentinel"></div>
+      <button id="feed-more" class="btn ghost ${state.feedHasMore ? '' : 'hidden'}" type="button">Load more stories</button>
     </section>
     <aside class="right-rail">
       <div class="rail-card"><span class="eyebrow">Happening now</span><h3>Explore by occasion</h3>
@@ -241,7 +249,7 @@ function messages() {
 }
 
 function wholesale() {
-  return `<div class="page-hero"><div class="container"><span class="eyebrow">For shops, communities and events</span><h1>Bring Nepal closer, in bulk.</h1><p>Request quantity and destination from the same maker catalog. Freight and final offers require seller confirmation.</p></div></div>${section('Direct from makers', 'Bulk-ready products', 'Indicative prices become confirmed offers after a seller reviews the request.', `<div class="grid">${state.data.products.map(item => `<article class="card"><div class="card-image">${imageOrArt(item)}</div><div class="card-body"><span class="subtle">MOQ ${item.moq} · ${esc(item.origin)}</span><h3>${esc(item.title)}</h3><p>From ${money(item.wholesale_price)} / unit</p><button class="small-btn" data-rfq="${item.id}">Request quote →</button></div></article>`).join('')}</div>`)}${footer()}`;
+  return `<div class="page-hero"><div class="container"><span class="eyebrow">For shops, communities and events</span><h1>Bring Nepal closer, in bulk.</h1><p>Request quantity and destination from the same maker catalog. Freight and final offers require seller confirmation.</p></div></div>${section('Direct from makers', 'Bulk-ready products', 'Indicative prices become confirmed offers after a seller reviews the request.', `<div class="grid">${state.data.products.filter(item=>item.wholesale_price).map(item => `<article class="card"><div class="card-image">${imageOrArt(item)}</div><div class="card-body"><span class="subtle">MOQ ${item.moq} · ${esc(item.origin)}</span><h3>${esc(item.title)}</h3><p>From ${money(item.wholesale_price)} / unit</p><button class="small-btn" data-rfq="${item.id}">Request quote →</button></div></article>`).join('')||'<div class="empty">No bulk-ready listings yet. Ask a maker about custom quantity from their product page.</div>'}</div>`)}${footer()}`;
 }
 
 function impact() {
@@ -250,8 +258,11 @@ function impact() {
 }
 
 function sellerPanel() {
+  const terms=state.data.seller_terms;
+  if(state.data.user.role==='seller'&&state.data.user.accepted_terms_version!==terms.version)return `<div class="panel" style="margin-top:22px"><span class="eyebrow">Seller terms update</span><h3>Review before publishing</h3>${sellerTermsHtml()}<form id="seller-terms-accept-form"><input type="hidden" name="version" value="${esc(terms.version)}"><label class="consent-row"><input type="checkbox" name="accept" required> I have read and accept these seller terms.</label><button class="btn">Accept current terms</button></form></div>`;
   if (state.data.user.role === 'seller' && state.data.user.seller_status !== 'verified') return `<div class="panel" style="margin-top:22px"><span class="eyebrow">Seller application</span><h3>Verification ${esc(state.data.user.seller_status)}</h3><p>Admin approval is required before products, photos or videos can be published. This protects buyers and keeps seller identity accountable.</p></div>`;
-  return `<div class="panel" style="margin-top:22px"><span class="eyebrow">Seller tools</span><h3>Maker studio</h3><p>Create a product once, then tag it in as many stories as you need.</p><div class="notice">You own your brand and product content. Melaa currently projects a ${Number(state.data.commerce?.commission_percent||0)}% fee on merchandise in recorded orders; no payment or fee is collected in this preview. Final fees, refunds and payout timing must be agreed before live selling.</div>
+  return `<div class="panel" style="margin-top:22px"><span class="eyebrow">Seller tools</span><h3>Maker studio</h3><p>Create a product once, then tag it in as many stories as you need.</p><div class="notice">You own your brand and product content. Melaa projects ${Number(state.data.commerce?.commission_percent||0)}% retail and ${Number(state.data.commerce?.wholesale_commission_percent||0)}% wholesale on merchandise, excluding delivery and tax. No payment or fee is collected in this preview. Two-percent wholesale would need a separately agreed rate after costs are verified.</div>
+    <p><button class="text-link" data-show-seller-terms>Review your seller terms</button> · <span class="subtle">Live broadcasting is not enabled; uploaded videos can be tagged to approved products and occasions.</span></p>
     <div class="split">
       <form id="product-form">
         <label class="field">Product photo<input name="media" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label>
@@ -261,6 +272,7 @@ function sellerPanel() {
         <div class="split"><label class="field">Approved category<select name="category_id" required><option value="">Choose one</option>${state.data.categories.map(item => `<option value="${item.id}">${esc(item.group_name)} · ${esc(item.name)}</option>`).join('')}</select></label><label class="field">Origin<input name="origin" value="Nepal"></label></div>
         <label class="field">Occasion<select name="occasion_id"><option value="">None</option>${state.data.occasions.map(item => `<option value="${item.id}">${esc(item.name)}</option>`).join('')}</select></label>
         <div class="split"><label class="field">Price NPR<input name="price" type="number" min="1" required></label><label class="field">Stock<input name="stock" type="number" min="0" required></label></div>
+        <div class="split"><label class="field">Optional wholesale NPR / unit<input name="wholesale_price" type="number" min="1" placeholder="Leave blank if not offered"></label><label class="field">Minimum wholesale quantity<input name="moq" type="number" min="2" value="2"></label></div>
         <label class="field">Packed weight grams<input name="weight_g" type="number" min="1" required></label>
         <div class="split"><label class="field">Length cm<input name="length_cm" type="number" min="1" required></label><label class="field">Width cm<input name="width_cm" type="number" min="1" required></label></div>
         <label class="field">Height cm<input name="height_cm" type="number" min="1" required></label>
@@ -271,12 +283,17 @@ function sellerPanel() {
   </div>`;
 }
 
+function sellerTermsHtml() {
+  const terms=state.data.seller_terms;
+  return `<div class="seller-terms"><span class="eyebrow">Seller terms · ${esc(terms.version)}</span><ol>${terms.clauses.map(clause=>`<li>${esc(clause)}</li>`).join('')}</ol><p class="subtle">Draft for Nepalese legal review before public launch. Payment and payout services are not active.</p></div>`;
+}
+
 function composerForm() {
   return `<form id="post-form">
     <div class="upload-drop"><div><b>Tap to add a photo or video</b><p class="subtle">JPG, PNG or WebP up to 10 MB · MP4 up to 25 MB</p><input name="media" type="file" accept="image/jpeg,image/png,image/webp,video/mp4" capture="environment"></div></div>
     <div class="media-preview hidden"></div>
     <label class="field">Caption<textarea name="caption" maxlength="2000" placeholder="Tell people what they are seeing and why it matters…" required></textarea></label>
-    <label class="field">Tag a product<select name="product_id"><option value="">No product</option>${state.data.products.map(item => `<option value="${item.id}">${esc(item.title)} · ${money(item.price)}</option>`).join('')}</select></label>
+    <label class="field">Tag one of your approved products<select name="product_id"><option value="">No product</option>${state.data.products.filter(item=>item.seller_id===state.data.user?.id).map(item => `<option value="${item.id}">${esc(item.title)} · ${money(item.price)}</option>`).join('')}</select></label>
     <label class="field">Tag an occasion<select name="occasion_id"><option value="">No occasion</option>${state.data.occasions.map(item => `<option value="${item.id}">${esc(item.name)}</option>`).join('')}</select></label>
     <button class="btn">Publish story</button>
     <p class="subtle">Stories enter the admin review queue before they become public.</p>
@@ -293,8 +310,8 @@ function adminPanel() {
 
 function account() {
   const user = state.data.user;
-  if (!user) return `<div class="page-hero"><div class="container"><span class="eyebrow">Your Melaa</span><h1>Come on in.</h1><p>Sign in to follow makers, save stories, message sellers and order.</p></div></div><section class="section"><div class="container split"><div class="panel"><h3>Sign in</h3><form id="login-form"><label class="field">Email<input name="email" type="email" autocomplete="email" required></label><label class="field">Password<input name="password" type="password" autocomplete="current-password" required></label><button class="btn">Sign in</button></form></div><div class="panel"><h3>Join Melaa</h3><form id="register-form"><label class="field">Name<input name="name" required maxlength="100"></label><label class="field">Email<input name="email" type="email" required></label><label class="field">Password (12+ characters)<input name="password" type="password" minlength="12" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{12,}" required></label><label class="field">Join as<select name="role"><option value="buyer">Buyer</option><option value="seller">Maker / seller — requires admin approval</option></select></label><button class="btn">Create account</button></form></div></div></section>${footer()}`;
-  return `<div class="page-hero"><div class="container"><span class="eyebrow">Your Melaa</span><h1>Hello, ${esc(user.name)}.</h1><p>Follow makers, save inspiration and keep orders in view.</p><button class="btn ghost" id="logout">Sign out</button></div></div><section class="section"><div class="container"><div class="split"><div class="panel"><h3>Plan an occasion</h3><p>Save a date and delivery area. Order-by dates remain planning estimates until live carriers are connected.</p><form id="event-form"><label class="field">Occasion<select name="occasion_id">${state.data.occasions.map(item => `<option value="${item.id}">${esc(item.name)}</option>`).join('')}</select></label><label class="field">Date<input type="date" name="event_date" required></label><label class="field">Delivery area<select name="zone">${state.data.rates.map(item => `<option>${esc(item.zone)}</option>`).join('')}</select></label><button class="btn">Save event</button></form></div><div class="panel"><h3>Your activity</h3><div id="account-data">Loading…</div></div></div>${['seller', 'admin'].includes(user.role) ? sellerPanel() : ''}${user.role === 'admin' ? adminPanel() : ''}</div></section>${footer()}`;
+  if (!user) return `<div class="page-hero"><div class="container"><span class="eyebrow">Your Melaa</span><h1>Come on in.</h1><p>Sign in to follow makers, save stories, message sellers and order.</p></div></div><section class="section"><div class="container split"><div class="panel"><h3>Sign in</h3><form id="login-form"><label class="field">Email<input name="email" type="email" autocomplete="email" required></label><label class="field">Password<input name="password" type="password" autocomplete="current-password" required></label><button class="text-link" type="button" data-password-toggle>Show password</button><button class="btn">Sign in</button><p class="subtle">Password recovery is not available in this protected preview. Do not create an account you cannot access again.</p></form></div><div class="panel"><h3>Join Melaa</h3><form id="register-form"><label class="field">Name<input name="name" autocomplete="name" required maxlength="100"></label><label class="field">Email<input name="email" type="email" autocomplete="email" required></label><label class="field">Password (12+ characters)<input name="password" type="password" autocomplete="new-password" minlength="12" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{12,}" required></label><button class="text-link" type="button" data-password-toggle>Show password</button><label class="field">Join as<select name="role" id="join-role"><option value="buyer">Buyer</option><option value="seller">Maker / seller — requires admin approval</option></select></label><div id="seller-terms-box" class="hidden">${sellerTermsHtml()}<input type="hidden" name="seller_terms_version" value="${esc(state.data.seller_terms.version)}"><label class="consent-row"><input type="checkbox" name="accept_seller_terms"> I have read and accept the seller terms.</label></div><button class="btn">Create account</button></form></div></div></section>${footer()}`;
+  return `<div class="page-hero"><div class="container"><span class="eyebrow">Your Melaa</span><h1>Hello, ${esc(user.name)}.</h1><p>Follow makers, save inspiration and keep orders in view.</p><button class="btn ghost" id="logout">Sign out</button></div></div><section class="section"><div class="container"><div class="split"><div class="panel"><h3>Plan an occasion</h3><p>Save a date and delivery area. Order-by dates remain planning estimates until live carriers are connected.</p><form id="event-form"><label class="field">Occasion<select name="occasion_id">${state.data.occasions.map(item => `<option value="${item.id}">${esc(item.name)}</option>`).join('')}</select></label><label class="field">Date<input type="date" name="event_date" required></label><label class="field">Delivery area<select name="zone">${state.data.rates.map(item => `<option>${esc(item.zone)}</option>`).join('')}</select></label><button class="btn">Save event</button></form></div><div class="panel"><h3>Occasion reminders</h3><p>See planning notices here. Email and push delivery are not enabled.</p><div id="reminder-data">Loading…</div><button class="small-btn" data-reminder-demo>Show reminder demo</button></div></div><div class="panel" style="margin-top:18px"><h3>Your activity</h3><div id="account-data">Loading…</div></div>${['seller', 'admin'].includes(user.role) ? `<div class="panel" style="margin-top:18px"><h3>Suggestions to sellers</h3><p class="subtle">Private feedback is visible to the receiving seller and Melaa admins.</p><div id="suggestions-data">Loading…</div></div>${sellerPanel()}` : ''}${user.role === 'admin' ? adminPanel() : ''}</div></section>${footer()}`;
 }
 
 function render(scroll = true) {
@@ -309,7 +326,57 @@ function render(scroll = true) {
   if (state.view === 'occasions') filterOccasions();
   if (state.view === 'account' && state.data.user) loadAccount();
   if (state.view === 'messages' && state.data.user) loadConversations();
+  if (state.view === 'home') setupFeed();
+  else state.feedObserver?.disconnect();
   if (scroll) window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+function resetFeed() {
+  state.feedGeneration += 1;
+  state.feedPosts = [];
+  state.feedOffset = 0;
+  state.feedHasMore = true;
+  state.feedLoading = false;
+}
+
+function setupFeed() {
+  state.feedObserver?.disconnect();
+  const status = $('#feed-status');
+  if (status && !state.feedHasMore && !state.feedLoading) status.innerHTML = feedEnd();
+  state.feedObserver = new IntersectionObserver(entries => {
+    if (entries.some(entry => entry.isIntersecting)) loadFeed();
+  }, { rootMargin: '550px 0px' });
+  if (state.feedHasMore) state.feedObserver.observe($('#feed-sentinel'));
+  if (state.feedHasMore && !state.feedPosts.length) loadFeed();
+}
+
+function feedEnd() {
+  if (!state.feedPosts.length) return state.feedMode === 'following'
+    ? '<div class="empty">Follow a maker to build your feed. <button class="text-link" data-feed-mode="for-you">Explore all stories</button></div>'
+    : '<div class="empty">No more reviewed stories yet. Explore products and occasions while makers create more.</div>';
+  return '<div class="feed-finish"><b>You’re caught up for now.</b><p>More reviewed stories will appear as makers post.</p><button class="small-btn" data-view="shop">Explore products</button> <button class="small-btn" data-view="occasions">Explore occasions</button></div>';
+}
+
+async function loadFeed() {
+  if (state.feedLoading || !state.feedHasMore || state.view !== 'home') return;
+  const generation = state.feedGeneration;
+  state.feedLoading = true;
+  const status = $('#feed-status');
+  if (status) status.textContent = 'Loading stories…';
+  try {
+    const params = new URLSearchParams({ limit: '8', offset: String(state.feedOffset), mode: state.feedMode, q: state.feedQuery });
+    const result = await api(`/feed?${params}`);
+    if (generation !== state.feedGeneration) return;
+    state.feedPosts.push(...result.posts);
+    state.feedOffset = result.next_offset;
+    state.feedHasMore = result.has_more;
+    result.posts.forEach(item => { if (!state.data.posts.some(x => x.id === item.id)) state.data.posts.push(item); });
+    $('#feed-list')?.insertAdjacentHTML('beforeend', result.posts.map(postCard).join(''));
+    if (status) status.innerHTML = result.has_more ? '<span class="subtle">Results reflect your search, followed makers and recent community activity.</span>' : feedEnd();
+    $('#feed-more')?.classList.toggle('hidden', !result.has_more);
+    if (!result.has_more) state.feedObserver?.disconnect();
+  } catch (error) { if (status) status.textContent = error.message; }
+  finally { if (generation === state.feedGeneration) state.feedLoading = false; }
 }
 
 function rerenderStay() {
@@ -332,13 +399,15 @@ function filterOccasions() {
 
 async function loadAccount() {
   try {
-    const data = await api('/me');
+    const [data,reminders] = await Promise.all([api('/me'),api('/reminders')]);
     state.me = data;
+    $('#reminder-data').innerHTML = [...reminders.saved.map(item=>`<div class="reminder-card"><b>${esc(item.title)}</b><span>${esc(item.event_date)} · ${item.active?'Plan or order now':'Planning notice starts '+esc(item.notice_date)}</span><small>Your saved date · ${esc(item.zone)}</small></div>`),...reminders.reviewed.map(item=>`<div class="reminder-card"><b>${esc(item.title)}</b><span>${esc(item.event_date)} · ${item.active?'Prepare now':'Planning notice starts '+esc(item.notice_date)}</span><small>Admin-reviewed annual date${item.source_url?` · <a href="${esc(item.source_url)}" target="_blank" rel="noopener noreferrer">Source</a>`:''}</small></div>`)].join('')||'<p class="muted">No saved or annually reviewed dates in the next 120 days. Try the demo below, or save a personal occasion.</p>';
     $('#account-data').innerHTML = `<b>Saved occasions</b>${data.saved.length ? data.saved.map(item => {
       const date = new Date(`${item.event_date}T00:00:00`);
       date.setDate(date.getDate() - (item.zone.includes('International') ? 45 : 21));
       return `<p>${esc(item.title)} · ${esc(item.event_date)}<br><span class="subtle">Planning order-by: ${date.toISOString().slice(0, 10)}</span></p>`;
-    }).join('') : '<p class="muted">Nothing saved yet.</p>'}<b>Orders</b>${data.orders.length ? data.orders.map(item => `<p>#${item.id} · ${money(item.total)} · ${esc(item.status)}<br><span class="subtle">No payment collected</span></p>`).join('') : '<p class="muted">No orders yet.</p>'}<b>Wholesale requests</b>${data.quotes.length ? data.quotes.map(item => `<p>${esc(item.title)} × ${item.qty} · ${esc(item.status)}</p>`).join('') : '<p class="muted">No requests yet.</p>'}`;
+    }).join('') : '<p class="muted">Nothing saved yet.</p>'}<b>Orders</b>${data.orders.length ? data.orders.map(item => `<p>#${item.id} · ${money(item.total)} · ${esc(item.status)}<br><span class="subtle">No payment collected</span></p>`).join('') : '<p class="muted">No orders yet.</p>'}<b>Wholesale requests you sent</b>${data.quotes.length ? data.quotes.map(item => `<p>${esc(item.title)} × ${item.qty} · ${esc(item.status)}</p>`).join('') : '<p class="muted">No requests yet.</p>'}${data.quotes_received?.length?`<b>Bulk enquiries received</b>${data.quotes_received.map(item=>`<p>${esc(item.buyer)} requested ${esc(item.title)} × ${item.qty} · ${esc(item.destination)}<br><span class="subtle">${esc(item.note||'No special requirements')} · ${esc(item.status)}</span></p>`).join('')}`:''}`;
+    if($('#suggestions-data'))$('#suggestions-data').innerHTML=data.suggestions.length?data.suggestions.map(item=>`<div class="review-card"><div><b>${esc(item.kind.replaceAll('_',' '))}</b> · ${esc(item.buyer)}<p>${esc(item.body)}</p><small>${esc(item.caption.slice(0,80))} · ${esc(item.status)}</small></div>${item.status==='new'?`<button class="small-btn" data-suggestion-reviewed="${item.id}">Mark reviewed</button>`:''}</div>`).join(''):'<p class="muted">No suggestions yet.</p>';
     if (data.user.role === 'admin') {
       const admin = await api('/admin');
       const openReports=admin.moderation.filter(item=>item.action==='queued');
@@ -421,20 +490,28 @@ async function commentsDrawer(id) {
 
 function makerDrawer(id) {
   const posts = state.data.posts.filter(item => item.author_id === Number(id));
-  const products = state.data.products.filter(item => posts.some(postItem => postItem.product_id === item.id));
+  const products = state.data.products.filter(item => item.seller_id === Number(id));
   const name = posts[0]?.author || 'Maker';
-  openDrawer(name, `<div style="text-align:center"><span class="avatar" style="width:78px;height:78px;margin:auto;font-size:24px">${initials(name)}</span><h2 style="font:700 31px 'Playfair Display';color:var(--wine);margin-bottom:4px">${esc(name)}</h2><p class="muted">Nepalese maker · ${posts.length} stories · ${products.length} products</p>${state.data.user?.id !== Number(id) ? `<button class="btn ghost" data-follow="${id}">${posts[0]?.following ? 'Following' : 'Follow maker'}</button>` : '<span class="pill">Your maker profile</span>'}</div><h3>Shop the maker</h3>${products.length ? products.map(item => `<div class="drawer-item"><div class="mini-art">${imageOrArt(item)}</div><div style="flex:1"><b>${esc(item.title)}</b><p>${money(item.price)}</p><button class="small-btn" data-view-product="${item.id}">View product</button></div></div>`).join('') : '<p class="muted">No tagged products yet.</p>'}`);
+  openDrawer(name, `<div style="text-align:center"><span class="avatar" style="width:78px;height:78px;margin:auto;font-size:24px">${initials(name)}</span><h2 style="font:700 31px 'Playfair Display';color:var(--wine);margin-bottom:4px">${esc(name)}</h2><p class="muted">Nepalese maker · ${posts.length} recently loaded stories · ${products.length} products</p>${state.data.user?.id !== Number(id) ? `<button class="btn ghost" data-follow="${id}">${posts[0]?.following ? 'Following' : 'Follow maker'}</button>` : '<span class="pill">Your maker profile</span>'}</div><h3>Shop the maker</h3>${products.length ? products.map(item => `<div class="drawer-item"><div class="mini-art">${imageOrArt(item)}</div><div style="flex:1"><b>${esc(item.title)}</b><p>${money(item.price)}</p><button class="small-btn" data-view-product="${item.id}">View product</button></div></div>`).join('') : '<p class="muted">No products yet.</p>'}`);
 }
 
 function rfqDrawer(id) {
   const item = product(id);
-  openDrawer('Bulk enquiry', `<h2>${esc(item.title)}</h2><p>Indicative unit price from ${money(item.wholesale_price)} · MOQ ${item.moq}</p><form id="rfq-form" data-id="${item.id}"><label class="field">Quantity<input name="qty" type="number" min="${item.moq}" value="${item.moq}" required></label><label class="field">Delivery destination<input name="destination" placeholder="City and country" required></label><label class="field">Packaging, timing or requirements<textarea name="note"></textarea></label><button class="btn">Submit enquiry</button></form><p class="subtle">Seller confirmation, trade documents, freight and payment follow after quotation.</p>`);
+  openDrawer('Bulk enquiry', `<h2>${esc(item.title)}</h2><p>${item.wholesale_price?`Indicative unit price from ${money(item.wholesale_price)} · `:'Price requires a custom seller quote · '}MOQ ${item.moq||1}</p><form id="rfq-form" data-id="${item.id}"><label class="field">Quantity<input name="qty" type="number" min="${item.moq||1}" value="${item.moq||1}" required></label><label class="field">Delivery destination<input name="destination" placeholder="City and country" required></label><label class="field">Packaging, timing or requirements<textarea name="note"></textarea></label><button class="btn">Submit enquiry</button></form><p class="subtle">Seller confirmation, trade documents, freight and payment follow after quotation. No payment is taken here.</p>`);
+}
+
+function suggestionDrawer(id) {
+  const item = state.feedPosts.find(postItem => postItem.id === Number(id));
+  if (!item) return;
+  if (!state.data.user) { state.view='account'; render(); toast('Sign in to send a suggestion'); return; }
+  openDrawer('Suggest to the maker', `<p>Send a private, constructive idea about <b>${esc(item.product || item.caption.slice(0,60))}</b>. The seller and Melaa admin can review it.</p><form id="seller-suggestion-form" data-id="${item.id}"><label class="field">Idea type<select name="kind"><option value="customization">Customization</option><option value="restock">Restock or size</option><option value="packaging">Packaging or gifting</option><option value="product_idea">New product idea</option><option value="other">Other feedback</option></select></label><label class="field">Your suggestion<textarea name="body" minlength="10" maxlength="600" required placeholder="What would make this product more useful for you?"></textarea></label><button class="btn">Send to seller</button></form><p class="subtle">No contact details or off-platform payment requests.</p>`);
 }
 
 function composerDrawer() {
   if (!state.data.user) { state.view = 'account'; render(); toast('Sign in as a maker to publish'); return; }
   if (!['seller', 'admin'].includes(state.data.user.role)) { toast('A maker account is required to publish'); return; }
   if(state.data.user.role==='seller'&&state.data.user.seller_status!=='verified'){toast('Admin verification is required before publishing');return}
+  if(state.data.user.role==='seller'&&state.data.user.accepted_terms_version!==state.data.seller_terms.version){state.view='account';render();toast('Accept the current seller terms before publishing');return}
   openDrawer('Create a shoppable story', composerForm());
 }
 
@@ -481,6 +558,7 @@ async function startConversation(productId) {
 async function refresh({ keepPosition = false } = {}) {
   const y = window.scrollY;
   state.data = await api('/bootstrap');
+  resetFeed();
   render(!keepPosition);
   saveCart();
   await syncMessengerBadge();
@@ -511,6 +589,12 @@ function addToCart(id, open = false) {
 }
 
 document.addEventListener('click', async event => {
+  const togglePassword=event.target.closest('[data-password-toggle]');
+  if(togglePassword){const input=togglePassword.closest('form')?.elements.password;if(input){input.type=input.type==='password'?'text':'password';togglePassword.textContent=input.type==='password'?'Show password':'Hide password'}return}
+  if(event.target.closest('[data-show-seller-terms]')){openDrawer('Seller terms',sellerTermsHtml());return}
+  if(event.target.closest('[data-reminder-demo]')){const target=$('#reminder-data');if(target){const date=new Date();date.setDate(date.getDate()+21);target.insertAdjacentHTML('afterbegin',`<div class="reminder-card demo"><b>Demo: prepare for your occasion</b><span>Illustrative event: ${date.toISOString().slice(0,10)} · plan or order now</span><small>This is only an in-app preview. No message was sent and no date was saved.</small></div>`)}return}
+  const reviewedSuggestion=event.target.closest('[data-suggestion-reviewed]');
+  if(reviewedSuggestion){try{await post('/suggestions/status',{id:Number(reviewedSuggestion.dataset.suggestionReviewed),status:'reviewed'});await loadAccount();toast('Suggestion marked reviewed')}catch(error){toast(error.message)}return}
   const view = event.target.closest('[data-view]');
   if (view) {
     event.preventDefault();
@@ -529,7 +613,8 @@ document.addEventListener('click', async event => {
   if (event.target.closest('#close-drawer') || event.target.closest('#overlay')) { closeDrawer(); return; }
 
   const feedMode = event.target.closest('[data-feed-mode]');
-  if (feedMode) { state.feedMode = feedMode.dataset.feedMode; render(); return; }
+  if (feedMode) { state.feedMode = feedMode.dataset.feedMode; resetFeed(); render(); return; }
+  if (event.target.closest('#feed-more')) { await loadFeed(); return; }
   const add = event.target.closest('[data-add]');
   if (add) { addToCart(add.dataset.add); return; }
   const buy = event.target.closest('[data-buy-now]');
@@ -546,6 +631,8 @@ document.addEventListener('click', async event => {
   if (comments) { await commentsDrawer(comments.dataset.comments); return; }
   const messageProduct=event.target.closest('[data-message-product]');
   if(messageProduct){await startConversation(messageProduct.dataset.messageProduct);return}
+  const suggestion=event.target.closest('[data-suggest-seller]');
+  if(suggestion){suggestionDrawer(suggestion.dataset.suggestSeller);return}
   const category=event.target.closest('[data-category]');
   if(category){categoryDrawer(category.dataset.category);return}
   if(event.target.closest('[data-propose-category]')){proposalDrawer();return}
@@ -570,7 +657,7 @@ document.addEventListener('click', async event => {
   const report=event.target.closest('[data-report]');
   if(report){reportDrawer(report.dataset.report,report.dataset.id);return}
 
-  const authAction = event.target.closest('[data-like], [data-save], [data-follow]');
+  const authAction = event.target.closest('[data-like], [data-save], [data-follow], [data-recommend]');
   if (authAction) {
     if (!state.data.user) { state.view = 'account'; render(); toast('Sign in to join the community'); return; }
     try {
@@ -580,17 +667,26 @@ document.addEventListener('click', async event => {
         const item = state.data.posts.find(postItem => postItem.id === id);
         item.liked = result.liked ? 1 : 0;
         item.likes += result.liked ? 1 : -1;
+        const feedItem=state.feedPosts.find(postItem=>postItem.id===id);if(feedItem&&feedItem!==item){feedItem.liked=item.liked;feedItem.likes=item.likes}
+      }
+      if (authAction.dataset.recommend) {
+        const id=Number(authAction.dataset.recommend),result=await post('/posts/recommend',{post_id:id});
+        const item=state.feedPosts.find(postItem=>postItem.id===id);
+        item.recommended=result.recommended?1:0;item.recommendations+=result.recommended?1:-1;
+        toast(result.recommended?'Recommended to the community':'Recommendation removed');
       }
       if (authAction.dataset.save) {
         const id = Number(authAction.dataset.save);
         const result = await post('/posts/save', { post_id: id });
         state.data.posts.find(postItem => postItem.id === id).saved = result.saved ? 1 : 0;
+        const feedItem=state.feedPosts.find(postItem=>postItem.id===id);if(feedItem)feedItem.saved=result.saved?1:0;
         toast(result.saved ? 'Saved for later' : 'Removed from saved');
       }
       if (authAction.dataset.follow) {
         const id = Number(authAction.dataset.follow);
         const result = await post('/follows', { seller_id: id });
         state.data.posts.filter(postItem => postItem.author_id === id).forEach(postItem => { postItem.following = result.following ? 1 : 0; });
+        state.feedPosts.filter(postItem=>postItem.author_id===id).forEach(postItem=>{postItem.following=result.following?1:0});
         toast(result.following ? 'Maker followed' : 'Maker unfollowed');
       }
       if (!$('#drawer').classList.contains('hidden')) closeDrawer();
@@ -630,12 +726,14 @@ document.addEventListener('click', async event => {
 });
 
 document.addEventListener('input', event => {
+  if (event.target.id === 'feed-search') { clearTimeout(state.feedSearchTimer); const value=event.target.value; state.feedSearchTimer=setTimeout(()=>{state.feedQuery=value.trim();resetFeed();const list=$('#feed-list');if(list){list.innerHTML='';$('#feed-status').textContent='Searching reviewed stories…';$('#feed-more').classList.remove('hidden');setupFeed()}},350); }
   if (event.target.id === 'product-search') { state.query = event.target.value; filterProducts(); }
   if (event.target.id === 'occasion-search') { state.query = event.target.value; filterOccasions(); }
   if (event.target.id === 'global-search-input') renderSearchResults(event.target.value);
 });
 
 document.addEventListener('change', event => {
+  if(event.target.id==='join-role'){const seller=event.target.value==='seller';$('#seller-terms-box')?.classList.toggle('hidden',!seller);const check=$('#seller-terms-box input[name="accept_seller_terms"]');if(check)check.required=seller;return}
   if (event.target.id === 'delivery-zone') { state.zone = event.target.value; cartDrawer(); return; }
   if (event.target.matches('input[type="file"][name="media"]')) {
     const file = event.target.files?.[0];
@@ -654,7 +752,7 @@ document.addEventListener('click', event => {
 
 document.addEventListener('submit', async event => {
   const form = event.target;
-  const accepted = ['login-form', 'register-form', 'event-form', 'rfq-form', 'product-form', 'post-form', 'rate-form', 'cause-form', 'comment-form', 'suggest-form', 'occasion-date-form', 'settings-form', 'category-proposal-form', 'commodity-proposal-form', 'message-form', 'chat-report-form', 'report-form'];
+  const accepted = ['login-form', 'register-form', 'seller-terms-accept-form', 'seller-suggestion-form', 'event-form', 'rfq-form', 'product-form', 'post-form', 'rate-form', 'cause-form', 'comment-form', 'suggest-form', 'occasion-date-form', 'settings-form', 'category-proposal-form', 'commodity-proposal-form', 'message-form', 'chat-report-form', 'report-form'];
   if (!accepted.includes(form.id) && !form.classList.contains('quick-comment')) return;
   event.preventDefault();
   const data = Object.fromEntries(new FormData(form));
@@ -669,12 +767,18 @@ document.addEventListener('submit', async event => {
       await post('/posts/comment', { post_id: id, body: data.body });
       const item = state.data.posts.find(postItem => postItem.id === id);
       item.comments += 1;
+      const feedItem=state.feedPosts.find(postItem=>postItem.id===id);if(feedItem&&feedItem!==item)feedItem.comments+=1;
       if (form.id === 'comment-form') { await commentsDrawer(id); }
       else { form.reset(); rerenderStay(); }
       toast('Comment posted');
     } else if (form.id === 'login-form' || form.id === 'register-form') {
+      if(form.id==='register-form'&&data.role==='seller')data.accept_seller_terms=Boolean(data.accept_seller_terms);
       await post(form.id === 'login-form' ? '/login' : '/register', data);
       state.view = 'home'; await refresh(); toast('Welcome to Melaa');
+    } else if(form.id==='seller-terms-accept-form'){
+      await post('/seller-terms/accept',{version:data.version,accept:Boolean(data.accept)});await refresh({keepPosition:true});toast('Current seller terms accepted');
+    } else if(form.id==='seller-suggestion-form'){
+      await post('/posts/suggest',{post_id:Number(form.dataset.id),kind:data.kind,body:data.body});closeDrawer();toast('Suggestion sent privately to the seller');
     } else if (form.id === 'event-form') {
       data.title = occasion(data.occasion_id)?.name || 'My event';
       await post('/events', data); await loadAccount(); form.reset(); toast('Event saved');

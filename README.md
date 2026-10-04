@@ -24,12 +24,12 @@ Set `MELAA_ADMIN_PASSWORD` and `MELAA_SELLER_PASSWORD` **before the initial data
 
 ## What works in this version
 
-- Customer registration and login, seller and admin roles, server-side sessions.
+- Customer registration and login, seller and admin roles, server-side sessions. Seller registration requires explicit acceptance of concise versioned terms; a fee change requires fresh seller acceptance before publishing.
 - Strong-password rules, login throttling, strict session cookies, security headers, prepared SQL, server-side role/state enforcement, API rate limits, and moderation/audit records.
 - Seller onboarding in a pending state; only an admin-verified seller can upload or create products and stories.
-- Mobile-first, Instagram-style discovery feed with maker story circles and Following / For You views.
+- Mobile-first, Instagram-style discovery feed with maker story circles and Following / For You views. The feed loads reviewed posts in pages as people scroll, with an explicit search term, followed makers, limited engagement and recency used for ranking. It does not track hidden search history or promise limitless inventory.
 - Shoppable image and video posts with an in-post product card, price, stock state, one-tap add, product quick view and buy-now basket handoff.
-- Social actions: follow makers, like, comment, save, share, and open a lightweight maker profile without losing the feed.
+- Social actions: follow makers, like, comment, save, share, recommend, send private suggestions to sellers, and open a lightweight maker profile without losing the feed. Recommendations are community signals, **not** verified-purchase reviews. Sellers and admins can review suggestions.
 - Seller-friendly creation from the feed or account: mobile camera/file selection, local or private-cloud image/video upload, preview, caption, product tag and occasion tag.
 - Buyer/seller Messenger with product-linked threads, mobile chat layout, unread counts, periodic refresh, message/conversation reporting, a prioritized admin report queue, off-platform contact/payment blocking, admin visibility, message hiding, and conversation closure APIs.
 - A 58-category directory spanning culture/occasion, season/region, community/ethnicity, food/agriculture, and craft/fashion/home, plus 39 starter commodity guides linked to official editorial sources.
@@ -38,8 +38,8 @@ Set `MELAA_ADMIN_PASSWORD` and `MELAA_SELLER_PASSWORD` **before the initial data
 - Product creation with a product photo and approved category; occasion browsing, global search, marketplace search and category filters.
 - Wholesale quote requests and an in-place basket with provisional delivery quotes.
 - Cart and provisional shipping quote using actual versus volumetric weight, admin-configured zones and rates.
-- Pending order recording, configurable retail/wholesale commission and payout-hold settings, per-line projected commission, seller fee disclosure, and account history. These are accounting projections, not collected fees.
-- Personal event saving with an illustrative order-by planning date.
+- Pending order recording, configurable retail/wholesale commission and payout-hold settings (initially 5% retail and 3% wholesale), per-line projected retail commission, seller fee disclosure, and account history. These are accounting projections, not collected fees; wholesale requests are not settled orders.
+- Personal event saving, in-app planning reminders for saved dates and admin-reviewed annual occasions, and an explicitly illustrative reminder demo. No email or push reminders are delivered.
 - Community occasion suggestions held for research; admin-cited, BS-year-specific Gregorian dates with review audit entries.
 - Recipient applications held in an admin review queue. Contributions are intentionally disabled.
 - Consolidated admin queues for seller identity, products, stories, catalog proposals and recorded moderation events.
@@ -48,7 +48,7 @@ Set `MELAA_ADMIN_PASSWORD` and `MELAA_SELLER_PASSWORD` **before the initial data
 
 ## Deliberate launch gates
 
-No payment is taken, no donation is transferred, and no recipient is presented as approved. Checkout records `awaiting_payment` orders without reserving inventory. Rates and products are illustrative; the international zone is indicative only. Occasion records are research candidates unless a specific year is reviewed and cited. Text moderation is deliberately a baseline and cannot guarantee detection of fake people/products, pornography or every evasion. The project does not yet include legally sufficient KYC/KYB, specialist image/video/hash moderation, livestreaming, media transcoding or cloud quarantine, notification delivery, carrier integration, country-specific product eligibility, refunds, payout reconciliation, tax invoices, recommender ranking, or native mobile binaries.
+No payment is taken, no donation is transferred, and no recipient is presented as approved. Checkout records `awaiting_payment` orders without reserving inventory. Rates and products are illustrative; the international zone is indicative only. Occasion records are research candidates unless a specific year is reviewed and cited. Text moderation is deliberately a baseline and cannot guarantee detection of fake people/products, pornography or every evasion. The project does not yet include legally sufficient KYC/KYB, specialist image/video/hash moderation, livestreaming, media transcoding or cloud quarantine, delivered notifications, carrier integration, country-specific product eligibility, refunds, payout reconciliation, tax invoices, verified-purchase reviews, password recovery/email verification, or native mobile binaries. Current feed ranking is a simple transparent rule, not a mature recommender system.
 
 Before public deployment, follow [SECURITY.md](SECURITY.md), [CONTENT_SAFETY.md](CONTENT_SAFETY.md), [MARKETPLACE_OPERATIONS.md](MARKETPLACE_OPERATIONS.md), and [ADMIN_GUIDE.md](ADMIN_GUIDE.md). The prototype's styles, source-backed taxonomy and example content are design scaffolding, not a verified seller inventory.
 
@@ -69,13 +69,13 @@ Local preview media is stored under `data/uploads` by default. Set `MELAA_UPLOAD
 3. Add fulfillment and shipping provider adapters, rate versioning, parcel consolidation and final quote approval.
 4. Integrate payment through a licensed provider; reconcile payment, seller proceeds, commission, refunds, and shipment charges.
 5. Add vetted recipient onboarding and lawful payout rails. Enable optional contributions only after end-to-end settlement and privacy testing.
-6. Add notifications, multilingual chat/content classifiers, moderation appeals, feed ranking, livestream commerce, Android/iOS wrappers or a native client, and deployment automation.
+6. Add opted-in delivered notifications, multilingual chat/content classifiers, moderation appeals, privacy-tested recommendation models, separately hosted moderated livestream commerce, Android/iOS wrappers or a native client, and deployment automation.
 
 ## API map
 
-Core: `GET /api/bootstrap`, `POST /api/register`, `POST /api/login`, `POST /api/logout`, `GET /api/me`, `POST /api/media`, `POST /api/quote-shipping`, `POST /api/checkout`, `POST /api/events`, `POST /api/quotes`.
+Core: `GET /api/bootstrap`, `POST /api/register`, `POST /api/seller-terms/accept`, `POST /api/login`, `POST /api/logout`, `GET /api/me`, `GET /api/reminders`, `POST /api/media`, `POST /api/quote-shipping`, `POST /api/checkout`, `POST /api/events`, `POST /api/quotes`.
 
-Social/catalog: `POST /api/products`, `POST /api/posts`, `POST /api/posts/like`, `POST /api/posts/save`, `POST /api/posts/comment`, `GET /api/posts/comments`, `POST /api/follows`, `POST /api/reports`, `POST /api/categories/propose`, `POST /api/commodities/propose`, `POST /api/occasions/suggest`, `GET /api/occasions/dates`.
+Social/catalog: `GET /api/feed`, `POST /api/products`, `POST /api/posts`, `POST /api/posts/like`, `POST /api/posts/save`, `POST /api/posts/recommend`, `POST /api/posts/suggest`, `POST /api/suggestions/status`, `POST /api/posts/comment`, `GET /api/posts/comments`, `POST /api/follows`, `POST /api/reports`, `POST /api/categories/propose`, `POST /api/commodities/propose`, `POST /api/occasions/suggest`, `GET /api/occasions/dates`.
 
 Messenger: `GET /api/conversations`, `POST /api/conversations/start`, `GET /api/conversations/messages`, `POST /api/conversations/message`, `POST /api/conversations/report`.
 

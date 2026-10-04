@@ -14,6 +14,8 @@ The application is packaged as Vercel static assets plus a Node.js function at `
 
 The production Vercel build runs `scripts/migrate.js` after bundling the browser uploader. This applies the schema and catalog and creates the first admin inside Vercel's environment, where the Production Secret is available. The migration is idempotent for the seed records, so subsequent production builds are safe, although a dedicated release migration job would be preferable as the project grows. A build fails if the Turso credentials or a 12+ character admin password are absent.
 
+The October 2026 release adds versioned seller acceptance, post recommendations and private suggestions. Its migration changes only untouched original commission defaults (10%/6%) to 5%/3%; an admin-edited rate is preserved. A seller with an older accepted terms version must accept the current rate-specific terms in their account before publishing. This deployment still records no wholesale or retail payment.
+
 For a manual migration from a trusted environment, supply actual credentials there and run `node scripts/migrate.js`. Do not expect `vercel env pull` to provide a Secret's value: it writes a redacted placeholder. For local catalog-only maintenance, with Turso credentials pulled to an ignored file, run:
 
 ```powershell
