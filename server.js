@@ -65,7 +65,7 @@ if(process.env.MELAA_SKIP_ADMIN_SEED!=='1')await seedUser('Melaa Admin','admin@m
 if(process.env.NODE_ENV!=='production'){
  await seedUser('Asha Craft Collective','maker@melaa.local','seller',process.env.MELAA_SELLER_PASSWORD || 'DemoSeller-2026!');
  const demoSeller=(await db.prepare('SELECT id FROM users WHERE email=?').get('maker@melaa.local')).id;
- await db.prepare("INSERT INTO seller_profiles(user_id,business_name,verification_status,reviewed_at,accepted_terms_version,accepted_terms_at) VALUES(?,?,?,CURRENT_TIMESTAMP,'2026-10-04-v1-r5-w3',CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE SET business_name=excluded.business_name").run(demoSeller,'Asha Craft Collective','verified');
+ await db.prepare("INSERT INTO seller_profiles(user_id,business_name,verification_status,reviewed_at,accepted_terms_version,accepted_terms_at) VALUES(?,?,?,CURRENT_TIMESTAMP,'2026-10-04-v2',CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE SET business_name=excluded.business_name").run(demoSeller,'Asha Craft Collective','verified');
 }
 const seller=process.env.NODE_ENV==='production'?null:(await db.prepare('SELECT id FROM users WHERE email=?').get('maker@melaa.local')).id;
 for(const [key,value] of [['retail_commission_percent','5'],['wholesale_commission_percent','3'],['buyer_protection_percent','0'],['payout_hold_days','7']])await db.prepare('INSERT OR IGNORE INTO platform_settings(key,value) VALUES(?,?)').run(key,value);
@@ -166,17 +166,17 @@ const int=(v,min=0,max=1000000)=>Number.isInteger(Number(v))&&Number(v)>=min&&Nu
 const safeText=(value,max)=>String(value||'').trim().slice(0,max);
 const validDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(String(value||''))&&!Number.isNaN(Date.parse(`${value}T00:00:00Z`))&&new Date(`${value}T00:00:00Z`).toISOString().slice(0,10)===value;
 const settingNumber=async(key,fallback)=>{const row=await db.prepare('SELECT value FROM platform_settings WHERE key=?').get(key);const value=Number(row?.value);return Number.isFinite(value)?value:fallback};
-const sellerTerms=async()=>{const retail=await settingNumber('retail_commission_percent',5),wholesale=await settingNumber('wholesale_commission_percent',3);return {
- version:`2026-10-04-v1-r${retail}-w${wholesale}`,retail_percent:retail,wholesale_percent:wholesale,
+const sellerTerms=async()=>({
+ version:'2026-10-04-v2',
  clauses:[
-  `Melaa is the marketplace; you remain the seller and set your own product prices. The current projected platform fee is ${retail}% on retail merchandise and ${wholesale}% on confirmed wholesale merchandise. Delivery and tax are excluded. No fee is collected in this preview.`,
+  'Melaa is the marketplace; you remain the seller and set your own product prices. Melaa and the seller will mutually agree in writing on any platform service fee before paid selling begins. That agreement will state the rate, calculation basis, payment timing and treatment of refunds. No platform fee is charged in this preview.',
   'Describe authentic goods accurately, show origin, materials and required labels, and provide genuine identity/business evidence when asked. No counterfeit, illegal, unsafe or sexually explicit goods.',
   'Only upload photos, videos and words you may use. You keep ownership; you allow Melaa to display them for your listings and marketplace promotion while listed.',
   'Honor accepted orders, availability and delivery commitments. Resolve refunds, returns and disputes fairly under applicable law; do not shift platform fees to a buyer without clear pricing.',
   'Keep transactions and order-related contact on Melaa when checkout becomes available. Admins may review listings, reports and marketplace chats for safety; review, suspension and appeal procedures apply.',
-  'We will notify you of material terms or fee changes and ask for fresh acceptance before you can publish under the new version. Seller settlement requires a licensed payment partner and separate launch rules.'
- ]};
-};
+  'We will notify you of material term changes and ask for fresh acceptance before you can publish under a new terms version. Any service-fee change requires a separate written agreement. Seller settlement requires a licensed payment partner and separate launch rules.'
+ ]
+});
 const moderationRules=[
  {reason:'sexual_or_pornographic_content',pattern:/\b(porn(?:ography)?|xxx|nudes?|sex\s*video|explicit\s*sex|onlyfans)\b/i},
  {reason:'counterfeit_or_deceptive_product',pattern:/\b(counterfeit|fake\s+(?:brand|product)|replica\s+(?:brand|designer)|forged\s+(?:certificate|document))\b/i},

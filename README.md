@@ -24,7 +24,7 @@ Set `MELAA_ADMIN_PASSWORD` and `MELAA_SELLER_PASSWORD` **before the initial data
 
 ## What works in this version
 
-- Customer registration and login, seller and admin roles, server-side sessions. Seller registration requires explicit acceptance of concise versioned terms; a fee change requires fresh seller acceptance before publishing.
+- Customer registration and login, seller and admin roles, server-side sessions. Seller registration requires explicit acceptance of concise versioned terms; any actual fee requires a separate mutual written agreement before paid selling.
 - Strong-password rules, login throttling, strict session cookies, security headers, prepared SQL, server-side role/state enforcement, API rate limits, and moderation/audit records.
 - Seller onboarding in a pending state; only an admin-verified seller can upload or create products and stories.
 - Mobile-first, Instagram-style discovery feed with maker story circles and Following / For You views. The feed loads reviewed posts in pages as people scroll, with an explicit search term, followed makers, limited engagement and recency used for ranking. It does not track hidden search history or promise limitless inventory.
@@ -38,7 +38,7 @@ Set `MELAA_ADMIN_PASSWORD` and `MELAA_SELLER_PASSWORD` **before the initial data
 - Product creation with a product photo and approved category; occasion browsing, global search, marketplace search and category filters.
 - Wholesale quote requests and an in-place basket with provisional delivery quotes.
 - Cart and provisional shipping quote using actual versus volumetric weight, admin-configured zones and rates.
-- Pending order recording, configurable retail/wholesale commission and payout-hold settings (initially 5% retail and 3% wholesale), per-line projected retail commission, seller fee disclosure, and account history. These are accounting projections, not collected fees; wholesale requests are not settled orders.
+- Pending order recording, configurable internal retail/wholesale planning rates (initially 5% retail and 3% wholesale) and payout-hold settings, per-line projected retail commission, seller fee disclosure, and account history. These are accounting projections, not agreed or collected fees; wholesale requests are not settled orders.
 - Personal event saving, in-app planning reminders for saved dates and admin-reviewed annual occasions, and an explicitly illustrative reminder demo. No email or push reminders are delivered.
 - Community occasion suggestions held for research; admin-cited, BS-year-specific Gregorian dates with review audit entries.
 - Recipient applications held in an admin review queue. Contributions are intentionally disabled.

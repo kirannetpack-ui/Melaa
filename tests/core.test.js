@@ -18,9 +18,10 @@ test('social, commerce, research, and contribution gates',async()=>{
  try{
   await ready();
   const boot=(await request('/bootstrap')).data;
-  assert.equal(boot.seller_terms.retail_percent,5);
-  assert.equal(boot.seller_terms.wholesale_percent,3);
+  assert.match(boot.seller_terms.clauses[0],/mutually agree in writing/);
+  assert.doesNotMatch(boot.seller_terms.clauses[0],/5%|3%/);
   assert.equal(boot.commerce.commission_percent,5);
+  assert.equal(boot.commerce.wholesale_commission_percent,3);
   assert.equal(boot.products.length,10);
   assert.equal(boot.occasions.length,12);
   const shipping=(await request('/quote-shipping',{items:[{product_id:1,qty:2}],zone:'Kathmandu Valley'})).data;
@@ -108,9 +109,9 @@ test('social, commerce, research, and contribution gates',async()=>{
   assert.equal(rejectedUpload.status,403);
   assert.equal((await request('/admin/settings',{retail_commission_percent:5,wholesale_commission_percent:2},admin.cookie)).status,200);
   const revisedTerms=(await request('/bootstrap')).data.seller_terms;
-  assert.notEqual(revisedTerms.version,boot.seller_terms.version);
+  assert.equal(revisedTerms.version,boot.seller_terms.version);
   const staleSellerUpload=await fetch(base+'/api/media',{method:'POST',headers:{cookie:seller.cookie,'content-type':'image/png'},body:Buffer.from('89504e470d0a1a0a','hex')});
-  assert.equal(staleSellerUpload.status,403);
+  assert.equal(staleSellerUpload.status,201);
   assert.equal((await request('/seller-terms/accept',{version:revisedTerms.version,accept:true},seller.cookie)).status,200);
   assert.equal((await request('/me',undefined,seller.cookie)).data.user.accepted_terms_version,revisedTerms.version);
 	 }finally{
