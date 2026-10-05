@@ -21,6 +21,7 @@ const state = {
   composerOpen: false,
   cart: JSON.parse(localStorage.getItem('melaa-cart') || '[]'),
   zone: 'Kathmandu Valley',
+  shippingRuleId: null,
   ship: null,
   me: null,
   conversations: [],
@@ -302,10 +303,13 @@ function composerForm() {
   </form>`;
 }
 
+function shippingBandFields(){return Array.from({length:20},(_,i)=>{const weight=((i+1)/2).toFixed(1).replace('.0','');return `<label class="field"><span>${weight} kg flat NPR</span><input name="band_${weight}" type="number" min="0" required value="0"></label>`}).join('')}
+function provinceOptions(){return Object.keys(state.data.nepal_destinations||{}).map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('')}
+function countryOptions(){return (state.data.international_countries||[]).map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('')}
 function adminPanel() {
   return `<div class="panel" style="margin-top:22px"><h3>Admin control center</h3><p>One queue for seller identity, products, posts, catalog proposals, conversations and recorded moderation events.</p><div id="admin-data">Loading…</div><div id="admin-review-queues"></div><div class="split">
     <form id="settings-form"><h3>Marketplace economics</h3><label class="field">Retail commission %<input name="retail_commission_percent" type="number" min="0" max="30" step="0.1" required></label><label class="field">Wholesale commission %<input name="wholesale_commission_percent" type="number" min="0" max="30" step="0.1" required></label><label class="field">Payout hold days<input name="payout_hold_days" type="number" min="0" max="30" required></label><button class="btn">Save commercial rules</button><p class="subtle">A payment provider must enforce split settlement and delayed payouts in production.</p></form>
-    <form id="rate-form"><h3>Set delivery rate</h3><label class="field">Zone<select name="zone">${state.data.rates.map(item => `<option>${esc(item.zone)}</option>`).join('')}</select></label><label class="field">Base NPR<input name="base_npr" type="number" min="1" required></label><label class="field">Per chargeable kg<input name="per_kg_npr" type="number" min="1" required></label><label class="field">Volumetric divisor<input name="divisor" type="number" min="1" value="5000" required></label><label class="field">Minimum kg<input name="minimum_kg" type="number" min="1" value="1" required></label><button class="btn">Save rate</button></form>
+    <form id="shipping-rule-form"><h3>Courier rate card</h3><p class="subtle">Create a named domestic district, international country, or international zone rule. Reuse a name to update it.</p><label class="field">Rate-card name<input name="name" maxlength="120" placeholder="Koshi — Jhapa / DHL Zone A" required></label><label class="field">Destination type<select name="scope" id="shipping-scope"><option value="domestic">Nepal outside Valley</option><option value="international">International country or zone</option></select></label><div id="domestic-destination"><label class="field">Province<select name="province" id="shipping-province"><option value="">All provinces outside Valley</option>${provinceOptions()}</select></label><label class="field">District<select name="district" id="shipping-district"><option value="">All districts in this province</option></select></label></div><div id="international-destination" class="hidden"><label class="field">Countries in this rate card<select name="countries" multiple size="7">${countryOptions()}</select></label><p class="subtle">Select one country for an individual rate, or several countries for a zone.</p></div><label class="field">Volumetric divisor<input name="divisor" type="number" min="1" value="5000" required></label><label class="field">Minimum chargeable kg<input name="minimum_kg" type="number" min="0.5" step="0.5" value="0.5" required></label><h4>Flat rate for each 0.5 kg band, through 10 kg</h4><div class="rate-band-grid">${shippingBandFields()}</div><label class="field">Base per kg after 10 kg<input name="over_10_per_kg" type="number" min="0" value="0" required></label><div id="shipping-charges"><h4>Additional charge above 10 kg</h4><div class="shipping-charge-row"><input name="charge_name" maxlength="80" placeholder="e.g. Remote-area handling"><input name="charge_above_kg" type="number" min="0" step="0.5" value="10"><select name="charge_kind"><option value="flat">Flat NPR</option><option value="per_kg">NPR per kg</option></select><input name="charge_amount_npr" type="number" min="0" placeholder="Amount"></div></div><button type="button" class="small-btn" data-add-shipping-charge>Add another charge</button><button class="btn">Save courier rate card</button><p class="subtle">A shipping quote remains provisional until carrier serviceability, taxes, restricted goods and pickup availability are confirmed.</p></form>
   </div></div>
   <div class="panel" style="margin-top:22px"><h3>Cultural research desk</h3><p>Annual dates need a cited source and human review.</p><form id="occasion-date-form" class="split"><div><label class="field">Occasion<select name="occasion_id">${state.data.occasions.map(item => `<option value="${item.id}">${esc(item.name)}</option>`).join('')}</select></label><label class="field">Bikram Sambat year<input name="bs_year" type="number" min="2000" max="2200" required></label></div><div><label class="field">Gregorian date<input name="gregorian_date" type="date" required></label><label class="field">Evidence URL<input name="source_url" type="url" required></label><button class="btn">Save reviewed date</button></div></form><div id="research-submissions"></div></div>`;
 }
@@ -450,11 +454,12 @@ async function cartDrawer() {
   let shipping = 0;
   try {
     if (lines.length) {
-      state.ship = await post('/quote-shipping', { items: state.cart, zone: state.zone });
+      const selected=state.data.shipping_rules?.find(item=>item.id===Number(state.shippingRuleId))||state.data.shipping_rules?.find(item=>item.name===state.zone)||state.data.shipping_rules?.[0];
+      state.ship = await post('/quote-shipping', { items: state.cart, shipping_rule_id:selected?.id, zone:selected?.name||state.zone });
       shipping = state.ship.shipping;
     }
   } catch (error) { toast(error.message); }
-  openDrawer('Your basket', `${lines.length ? lines.map(item => `<div class="drawer-item"><div class="mini-art">${imageOrArt(item.product)}</div><div style="flex:1"><b>${esc(item.product.title)}</b><p>${money(item.product.price)} · ${item.product.weight_g} g packed/unit</p><div class="qty"><button data-qty="${item.product.id}" data-change="-1">−</button>${item.qty}<button data-qty="${item.product.id}" data-change="1">+</button><button class="text-link" data-remove="${item.product.id}">Remove</button></div></div></div>`).join('') : '<div class="empty">Your basket is waiting for something meaningful.</div>'}<div class="summary"><label class="field">Delivery zone<select id="delivery-zone">${state.data.rates.map(item => `<option ${item.zone === state.zone ? 'selected' : ''}>${esc(item.zone)}</option>`).join('')}</select></label><div class="summary-row"><span>Products</span><b>${money(subtotal)}</b></div><div class="summary-row"><span>Delivery estimate</span><b>${money(shipping)}</b></div><div class="summary-row"><strong>Estimated total</strong><strong>${money(subtotal + shipping)}</strong></div><p class="subtle">${state.ship ? `Chargeable weight ${state.ship.chargeable_kg} kg. Quote is provisional.` : ''}</p><div class="notice">No payment is taken in this preview. Contributions remain optional and disabled.</div><button class="btn" id="checkout" style="width:100%;margin-top:16px" ${lines.length ? '' : 'disabled'}>Record order · payment pending</button></div>`);
+  openDrawer('Your basket', `${lines.length ? lines.map(item => `<div class="drawer-item"><div class="mini-art">${imageOrArt(item.product)}</div><div style="flex:1"><b>${esc(item.product.title)}</b><p>${money(item.product.price)} · ${item.product.weight_g} g packed/unit</p><div class="qty"><button data-qty="${item.product.id}" data-change="-1">−</button>${item.qty}<button data-qty="${item.product.id}" data-change="1">+</button><button class="text-link" data-remove="${item.product.id}">Remove</button></div></div></div>`).join('') : '<div class="empty">Your basket is waiting for something meaningful.</div>'}<div class="summary"><label class="field">Delivery destination<select id="delivery-zone">${(state.data.shipping_rules||[]).map(item => `<option value="${item.id}" ${Number(item.id) === Number(state.shippingRuleId) || !state.shippingRuleId&&item.name===state.zone ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label><div class="summary-row"><span>Products</span><b>${money(subtotal)}</b></div><div class="summary-row"><span>Delivery estimate</span><b>${money(shipping)}</b></div><div class="summary-row"><strong>Estimated total</strong><strong>${money(subtotal + shipping)}</strong></div><p class="subtle">${state.ship ? `Chargeable weight ${state.ship.chargeable_kg} kg · ${state.ship.breakdown.map(item=>`${esc(item.name)}: ${money(item.amount)}`).join(' · ')}. Quote is provisional.` : ''}</p><div class="notice">No payment is taken in this preview. Contributions remain optional and disabled.</div><button class="btn" id="checkout" style="width:100%;margin-top:16px" ${lines.length ? '' : 'disabled'}>Record order · payment pending</button></div>`);
 }
 
 function productDrawer(id) {
@@ -739,7 +744,8 @@ document.addEventListener('click', async event => {
   if (event.target.closest('#checkout')) {
     if (!state.data.user) { closeDrawer(); state.view = 'account'; render(); toast('Sign in to record the order'); return; }
     try {
-      const result = await post('/checkout', { items: state.cart, zone: state.zone, contribution: 0 });
+      const selected=state.data.shipping_rules?.find(item=>item.id===Number(state.shippingRuleId))||state.data.shipping_rules?.find(item=>item.name===state.zone);
+      const result = await post('/checkout', { items: state.cart, shipping_rule_id:selected?.id, zone:selected?.name||state.zone, contribution: 0 });
       state.cart = []; saveCart(); closeDrawer(); state.view = 'account'; await refresh(); toast(`Order #${result.id} recorded. No payment taken.`);
     } catch (error) { toast(error.message); }
   }
@@ -754,7 +760,9 @@ document.addEventListener('input', event => {
 
 document.addEventListener('change', event => {
   if(event.target.id==='join-role'){const seller=event.target.value==='seller';$('#seller-terms-box')?.classList.toggle('hidden',!seller);const check=$('#seller-terms-box input[name="accept_seller_terms"]');if(check)check.required=seller;return}
-  if (event.target.id === 'delivery-zone') { state.zone = event.target.value; cartDrawer(); return; }
+  if (event.target.id === 'delivery-zone') { state.shippingRuleId=Number(event.target.value);state.zone=state.data.shipping_rules?.find(item=>item.id===state.shippingRuleId)?.name||state.zone; cartDrawer(); return; }
+  if(event.target.id==='shipping-scope'){const international=event.target.value==='international';$('#domestic-destination')?.classList.toggle('hidden',international);$('#international-destination')?.classList.toggle('hidden',!international);return}
+  if(event.target.id==='shipping-province'){const districts=state.data.nepal_destinations?.[event.target.value]||[];const select=$('#shipping-district');if(select)select.innerHTML=`<option value="">All districts in this province</option>${districts.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('')}`;return}
   if (event.target.matches('input[type="file"][name="media"]')) {
     const file = event.target.files?.[0];
     const preview = event.target.closest('form')?.querySelector('.media-preview');
@@ -766,13 +774,14 @@ document.addEventListener('change', event => {
 });
 
 document.addEventListener('click', event => {
+  if(event.target.closest('[data-add-shipping-charge]')){const holder=$('#shipping-charges');if(holder)holder.insertAdjacentHTML('beforeend','<div class="shipping-charge-row"><input name="charge_name" maxlength="80" placeholder="Charge name"><input name="charge_above_kg" type="number" min="0" step="0.5" value="10"><select name="charge_kind"><option value="flat">Flat NPR</option><option value="per_kg">NPR per kg</option></select><input name="charge_amount_npr" type="number" min="0" placeholder="Amount"></div>');return}
   const filter = event.target.closest('[data-filter]');
   if (filter) { state.filter = filter.dataset.filter; render(); }
 });
 
 document.addEventListener('submit', async event => {
   const form = event.target;
-  const accepted = ['login-form', 'register-form', 'seller-terms-accept-form', 'seller-suggestion-form', 'event-form', 'rfq-form', 'product-form', 'post-form', 'rate-form', 'cause-form', 'comment-form', 'suggest-form', 'occasion-date-form', 'settings-form', 'category-proposal-form', 'commodity-proposal-form', 'message-form', 'chat-report-form', 'report-form'];
+  const accepted = ['login-form', 'register-form', 'seller-terms-accept-form', 'seller-suggestion-form', 'event-form', 'rfq-form', 'product-form', 'post-form', 'rate-form', 'shipping-rule-form', 'cause-form', 'comment-form', 'suggest-form', 'occasion-date-form', 'settings-form', 'category-proposal-form', 'commodity-proposal-form', 'message-form', 'chat-report-form', 'report-form'];
   if (!accepted.includes(form.id) && !form.classList.contains('quick-comment')) return;
   event.preventDefault();
   if(state.data.user?.is_demo){toast('Demo mode is read-only. Sign out to create your own account.');return}
@@ -819,6 +828,12 @@ document.addEventListener('submit', async event => {
       const result=await post('/posts', data); state.composerOpen=false; state.view = 'home'; history.replaceState(null,'','#home'); await refresh(); toast(result.status==='review'?'Story submitted for admin review':'Your story is live');
     } else if (form.id === 'rate-form') {
       await post('/admin/rates', data); await refresh({ keepPosition: true }); toast('Rate updated');
+    } else if (form.id === 'shipping-rule-form') {
+      data.countries=Array.from(form.elements.countries?.selectedOptions||[]).map(option=>option.value);
+      data.bands=Array.from({length:20},(_,i)=>{const to=(i+1)/2;return {from_kg:i/2,to_kg:to,kind:'flat',amount_npr:Number(form.elements[`band_${String(to).replace('.0','')}`].value)}});
+      const names=Array.from(form.querySelectorAll('input[name="charge_name"]')),aboves=Array.from(form.querySelectorAll('input[name="charge_above_kg"]')),kinds=Array.from(form.querySelectorAll('select[name="charge_kind"]')),amounts=Array.from(form.querySelectorAll('input[name="charge_amount_npr"]'));
+      data.charges=names.map((node,index)=>({name:node.value,above_kg:Number(aboves[index].value),kind:kinds[index].value,amount_npr:Number(amounts[index].value||0)})).filter(item=>item.name.trim());
+      ['divisor','minimum_kg','over_10_per_kg'].forEach(key=>data[key]=Number(data[key]));await post('/admin/shipping-rules',data);await refresh({keepPosition:true});toast('Courier rate card saved');
     } else if (form.id === 'cause-form') {
       await post('/admin/causes', data); await loadAccount(); form.reset(); toast('Recipient added to review');
     } else if (form.id === 'suggest-form') {

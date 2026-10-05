@@ -40,7 +40,7 @@ The public production preview can expose two **read-only** accounts when `MELAA_
 - Product and story review queues: pending content never reaches the public marketplace/feed.
 - Product creation with a product photo and approved category; occasion browsing, global search, marketplace search and category filters.
 - Wholesale quote requests and an in-place basket with provisional delivery quotes.
-- Cart and provisional shipping quote using actual versus volumetric weight, admin-configured zones and rates.
+- Cart and provisional shipping quote using actual versus volumetric weight, 0.5 kg flat bands through 10 kg, post-10 kg per-kilo rates and named flat/per-kilo surcharges. Admins can create domestic province/district rate cards from all seven provinces and 77 districts, or international country/zone rate cards from a global country list. Carrier serviceability, taxes and restricted-goods checks remain manual launch requirements.
 - Pending order recording, configurable internal retail/wholesale planning rates (initially 5% retail and 3% wholesale) and payout-hold settings, per-line projected retail commission, seller fee disclosure, and account history. These are accounting projections, not agreed or collected fees; wholesale requests are not settled orders.
 - Personal event saving, in-app planning reminders for saved dates and admin-reviewed annual occasions, and an explicitly illustrative reminder demo. No email or push reminders are delivered.
 - Community occasion suggestions held for research; admin-cited, BS-year-specific Gregorian dates with review audit entries.

@@ -115,6 +115,13 @@ test('social, commerce, research, and contribution gates',async()=>{
   assert.equal(pendingSeller.data.user.accepted_terms_version,boot.seller_terms.version);
   const rejectedUpload=await fetch(base+'/api/media',{method:'POST',headers:{cookie:pendingSeller.cookie,'content-type':'image/png'},body:Buffer.from('89504e470d0a1a0a','hex')});
   assert.equal(rejectedUpload.status,403);
+  const shippingRule=await request('/admin/shipping-rules',{name:'Koshi — Jhapa test',scope:'domestic',province:'Koshi Province',district:'Jhapa',countries:[],bands:[{from_kg:0,to_kg:.5,kind:'flat',amount_npr:100},{from_kg:.5,to_kg:10,kind:'flat',amount_npr:300}],over_10_per_kg:40,charges:[{name:'Remote handling',above_kg:10,kind:'flat',amount_npr:75}],divisor:5000,minimum_kg:.5},admin.cookie);
+  assert.equal(shippingRule.status,200);
+  const rateCard=(await request('/bootstrap')).data.shipping_rules.find(item=>item.name==='Koshi — Jhapa test');
+  assert.equal(rateCard.district,'Jhapa');
+  const overTen=await request('/quote-shipping',{items:[{product_id:1,qty:25}],shipping_rule_id:rateCard.id});
+  assert.equal(overTen.status,200);
+  assert.ok(overTen.data.breakdown.some(item=>item.name==='Remote handling'));
   assert.equal((await request('/admin/settings',{retail_commission_percent:5,wholesale_commission_percent:2},admin.cookie)).status,200);
   const revisedTerms=(await request('/bootstrap')).data.seller_terms;
   assert.equal(revisedTerms.version,boot.seller_terms.version);
