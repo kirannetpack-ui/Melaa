@@ -133,7 +133,7 @@ test('production seed keeps catalog but omits demo seller inventory',async()=>{
  const folder=mkdtempSync(path.join(tmpdir(),'melaa-prod-test-'));
  const productionPort=53000+Math.floor(Math.random()*8000);
  const productionBase=`http://127.0.0.1:${productionPort}`;
- const production=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,NODE_ENV:'production',VERCEL:'',PORT:String(productionPort),MELAA_ADMIN_PASSWORD:'UniqueTestPassword123!',MELAA_DB_PATH:path.join(folder,'production.sqlite'),MELAA_UPLOADS_PATH:path.join(folder,'uploads')},stdio:'ignore'});
+ const production=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,NODE_ENV:'production',VERCEL:'',PORT:String(productionPort),MELAA_ADMIN_PASSWORD:'UniqueTestPassword123!',MELAA_ENABLE_PUBLIC_DEMO:'1',MELAA_DB_PATH:path.join(folder,'production.sqlite'),MELAA_UPLOADS_PATH:path.join(folder,'uploads')},stdio:'ignore'});
  try{
   let response;
   for(let attempt=0;attempt<100;attempt++){
@@ -146,12 +146,26 @@ test('production seed keeps catalog but omits demo seller inventory',async()=>{
   assert.equal(data.commodities.length,39);
   assert.equal(data.products.length,0);
   assert.equal(data.posts.length,0);
+  assert.equal(data.demo_available,true);
+  for(const [email,password,role] of [['buyer@melaa.local','DemoBuyer-2026!','buyer'],['maker@melaa.local','DemoSeller-2026!','seller']]){
+   const response=await fetch(productionBase+'/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,password})});
+   assert.equal(response.status,200);
+   const body=await response.json();
+   assert.equal(body.user.role,role);
+   assert.equal(body.user.is_demo,1);
+   const cookie=response.headers.get('set-cookie').split(';')[0];
+   const own=await fetch(productionBase+'/api/me',{headers:{cookie}});
+   assert.equal(own.status,200);
+   assert.equal((await own.json()).user.is_demo,1);
+   assert.equal((await fetch(productionBase+'/api/admin',{headers:{cookie}})).status,403);
+   assert.equal((await fetch(productionBase+'/api/events',{method:'POST',headers:{cookie,'content-type':'application/json'},body:'{}'})).status,403);
+   assert.equal((await fetch(productionBase+'/api/posts',{method:'POST',headers:{cookie,'content-type':'application/json'},body:'{}'})).status,403);
+  }
   const login=await fetch(productionBase+'/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:'admin@melaa.local',password:'UniqueTestPassword123!'})});
   assert.equal(login.status,200);
   assert.match(login.headers.get('set-cookie'),/; Secure/);
  }finally{
-  production.kill();
-  await new Promise(resolve=>production.once('close',resolve));
+  if(production.exitCode===null){production.kill();await new Promise(resolve=>production.once('close',resolve));}
   rmSync(folder,{recursive:true,force:true});
  }
 });

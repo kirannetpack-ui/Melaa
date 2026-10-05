@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY, actor_id INTEGER, actio
 const ensureColumn=async(table,column,definition)=>{if(!(await db.prepare(`PRAGMA table_info(${table})`).all()).some(x=>x.name===column))await db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`)};
 await ensureColumn('users','account_status',"TEXT NOT NULL DEFAULT 'active'");
 await ensureColumn('users','phone_e164','TEXT');
+await ensureColumn('users','is_demo','INTEGER NOT NULL DEFAULT 0');
 await db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_phone_e164_unique ON users(phone_e164) WHERE phone_e164 IS NOT NULL;');
 await ensureColumn('products','category_id','INTEGER REFERENCES categories(id)');
 await ensureColumn('products','moderation_note','TEXT');
@@ -68,6 +69,18 @@ if(process.env.NODE_ENV!=='production'){
  await seedUser('Asha Craft Collective','maker@melaa.local','seller',process.env.MELAA_SELLER_PASSWORD || 'DemoSeller-2026!');
  const demoSeller=(await db.prepare('SELECT id FROM users WHERE email=?').get('maker@melaa.local')).id;
  await db.prepare("INSERT INTO seller_profiles(user_id,business_name,verification_status,reviewed_at,accepted_terms_version,accepted_terms_at) VALUES(?,?,?,CURRENT_TIMESTAMP,'2026-10-04-v2',CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE SET business_name=excluded.business_name").run(demoSeller,'Asha Craft Collective','verified');
+}
+if(process.env.NODE_ENV==='production'&&process.env.MELAA_ENABLE_PUBLIC_DEMO==='1'){
+ const seedDemo=async(name,email,role,password)=>{
+  const existing=await db.prepare('SELECT id,is_demo FROM users WHERE email=?').get(email);
+  if(existing&&!existing.is_demo)throw new Error(`Public demo account conflicts with an existing account: ${email}`);
+  const salt=crypto.randomBytes(16).toString('hex');
+  if(existing){await db.prepare("UPDATE users SET name=?,role=?,passhash=?,salt=?,account_status='active',is_demo=1 WHERE id=?").run(name,role,hash(password,salt),salt,existing.id);await db.prepare('DELETE FROM sessions WHERE user_id=?').run(existing.id);return existing.id}
+  return (await db.prepare('INSERT INTO users(name,email,role,passhash,salt,is_demo) VALUES(?,?,?,?,?,1)').run(name,email,role,hash(password,salt),salt)).lastInsertRowid;
+ };
+ const demoSeller=await seedDemo('Melaa Demo Maker','maker@melaa.local','seller','DemoSeller-2026!');
+ await db.prepare("INSERT INTO seller_profiles(user_id,business_name,verification_status,reviewed_at,accepted_terms_version,accepted_terms_at) VALUES(?,?,?,CURRENT_TIMESTAMP,'2026-10-04-v2',CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE SET verification_status='verified',accepted_terms_version='2026-10-04-v2',accepted_terms_at=CURRENT_TIMESTAMP").run(demoSeller,'Melaa Demo Maker','verified');
+ await seedDemo('Melaa Demo Buyer','buyer@melaa.local','buyer','DemoBuyer-2026!');
 }
 const seller=process.env.NODE_ENV==='production'?null:(await db.prepare('SELECT id FROM users WHERE email=?').get('maker@melaa.local')).id;
 for(const [key,value] of [['retail_commission_percent','5'],['wholesale_commission_percent','3'],['buyer_protection_percent','0'],['payout_hold_days','7']])await db.prepare('INSERT OR IGNORE INTO platform_settings(key,value) VALUES(?,?)').run(key,value);
@@ -160,7 +173,7 @@ const json=(res,status,data)=>{res.writeHead(status,{...securityHeaders,'content
 const err=(res,status,message)=>json(res,status,{error:message});
 const body=async req=>{if(Buffer.isBuffer(req.body))return JSON.parse(req.body.toString('utf8'));if(req.body&&typeof req.body==='object')return req.body;if(typeof req.body==='string')return JSON.parse(req.body);let b='';for await(const c of req){b+=c;if(b.length>1e6)throw new Error('Request too large')}return b?JSON.parse(b):{}};
 const rawBody=async(req,max)=>{const chunks=[];let size=0;for await(const c of req){size+=c.length;if(size>max)throw new Error('Media is too large');chunks.push(c)}return Buffer.concat(chunks)};
-const auth=async req=>{const token=(req.headers.cookie||'').match(/(?:^|;\s*)melaa_session=([^;]+)/)?.[1];if(!token)return null;return await db.prepare("SELECT u.id,u.name,CASE WHEN u.phone_e164 IS NULL THEN u.email ELSE NULL END email,u.phone_e164,u.role,u.account_status,COALESCE(sp.verification_status,'not_applicable') seller_status,sp.accepted_terms_version,sp.accepted_terms_at FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN seller_profiles sp ON sp.user_id=u.id WHERE s.token_hash=? AND s.expires_at>? AND u.account_status='active'").get(crypto.createHash('sha256').update(token).digest('hex'),Date.now())||null};
+const auth=async req=>{const token=(req.headers.cookie||'').match(/(?:^|;\s*)melaa_session=([^;]+)/)?.[1];if(!token)return null;return await db.prepare("SELECT u.id,u.name,CASE WHEN u.phone_e164 IS NULL THEN u.email ELSE NULL END email,u.phone_e164,u.role,u.is_demo,u.account_status,COALESCE(sp.verification_status,'not_applicable') seller_status,sp.accepted_terms_version,sp.accepted_terms_at FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN seller_profiles sp ON sp.user_id=u.id WHERE s.token_hash=? AND s.expires_at>? AND u.account_status='active'").get(crypto.createHash('sha256').update(token).digest('hex'),Date.now())||null};
 const requireUser=async(req,res)=>{const u=await auth(req);if(!u)err(res,401,'Please sign in.');return u};
 const requireAdmin=async(req,res)=>{const u=await requireUser(req,res);if(!u)return null;if(u.role!=='admin'){err(res,403,'Admin required');return null}return u};
 const requireSeller=async(req,res)=>{const u=await requireUser(req,res);if(!u)return null;if(u.role==='admin')return u;if(u.role!=='seller'||u.seller_status!=='verified'){err(res,403,'A verified seller account is required. Your application may still be under review.');return null}if(u.accepted_terms_version!==(await sellerTerms()).version){err(res,403,'Please accept the current seller terms in your account before publishing.');return null}return u};
@@ -198,9 +211,10 @@ const mediaSignature=(type,data)=>type==='image/png'?data.subarray(0,8).equals(B
 const quote=async(items,zone)=>{const rate=await db.prepare('SELECT * FROM rates WHERE zone=? AND active=1').get(zone);if(!rate)throw new Error('Delivery zone unavailable');let actual=0,volume=0;for(const i of items){const p=await db.prepare('SELECT * FROM products WHERE id=? AND status=?').get(i.product_id,'active');if(!p)throw new Error('Product unavailable');actual+=p.weight_g*i.qty/1000;volume+=p.length_cm*p.width_cm*p.height_cm*i.qty/rate.divisor}const kg=Math.max(rate.minimum_kg,Math.ceil(Math.max(actual,volume)));return {chargeable_kg:kg,actual_kg:+actual.toFixed(2),volumetric_kg:+volume.toFixed(2),shipping:rate.base_npr+kg*rate.per_kg_npr,provisional:true}};
 const routes=async(req,res,url)=>{
  const method=req.method,p=url.pathname;
+ if(method==='POST'&&!['/api/login','/api/logout'].includes(p)&&(await auth(req))?.is_demo)return err(res,403,'This public demo account is read-only. Sign out and register your own account to save changes.');
  if(method==='GET'&&p==='/api/bootstrap'){
   const viewer=await auth(req);
-  return json(res,200,{user:viewer,
+  return json(res,200,{user:viewer,demo_available:process.env.NODE_ENV==='production'&&process.env.MELAA_ENABLE_PUBLIC_DEMO==='1',
    seller_terms:await sellerTerms(),
    occasions:await db.prepare('SELECT o.*,(SELECT COUNT(*) FROM occasion_occurrences x WHERE x.occasion_id=o.id) confirmed_years FROM occasions o ORDER BY o.id').all(),
    categories:await db.prepare("SELECT * FROM categories WHERE status='active' ORDER BY group_name,name").all(),
@@ -363,7 +377,7 @@ const routes=async(req,res,url)=>{
  if(method==='POST'&&p==='/api/admin/causes'){const u=await requireAdmin(req,res);if(!u)return;const b=await body(req);if(!b.name||!b.project||!['organization','artisan','group','individual'].includes(b.type))return err(res,400,'Invalid recipient');const r=await db.prepare("INSERT INTO causes(name,type,project,description,verified,status) VALUES(?,?,?,?,0,'review')").run(safeText(b.name,120),b.type,safeText(b.project,200),safeText(b.description,1000));return json(res,201,{id:r.lastInsertRowid,status:'review'})}
  return err(res,404,'Not found');
 };
-async function loginSession(res,id){const token=crypto.randomBytes(32).toString('hex');await db.prepare('DELETE FROM sessions WHERE expires_at<=?').run(Date.now());await db.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)').run(crypto.createHash('sha256').update(token).digest('hex'),id,Date.now()+7*86400000);res.setHeader('set-cookie',`melaa_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800${process.env.NODE_ENV==='production'?'; Secure':''}`);return json(res,200,{user:await db.prepare("SELECT u.id,u.name,CASE WHEN u.phone_e164 IS NULL THEN u.email ELSE NULL END email,u.phone_e164,u.role,u.account_status,COALESCE(sp.verification_status,'not_applicable') seller_status,sp.accepted_terms_version,sp.accepted_terms_at FROM users u LEFT JOIN seller_profiles sp ON sp.user_id=u.id WHERE u.id=?").get(id)})}
+async function loginSession(res,id){const token=crypto.randomBytes(32).toString('hex');await db.prepare('DELETE FROM sessions WHERE expires_at<=?').run(Date.now());await db.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)').run(crypto.createHash('sha256').update(token).digest('hex'),id,Date.now()+7*86400000);res.setHeader('set-cookie',`melaa_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800${process.env.NODE_ENV==='production'?'; Secure':''}`);return json(res,200,{user:await db.prepare("SELECT u.id,u.name,CASE WHEN u.phone_e164 IS NULL THEN u.email ELSE NULL END email,u.phone_e164,u.role,u.is_demo,u.account_status,COALESCE(sp.verification_status,'not_applicable') seller_status,sp.accepted_terms_version,sp.accepted_terms_at FROM users u LEFT JOIN seller_profiles sp ON sp.user_id=u.id WHERE u.id=?").get(id)})}
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.mp4':'video/mp4'};
 const serveFile=(res,target,noStore=false)=>fs.readFile(target,(e,data)=>{if(e){res.writeHead(404,securityHeaders);return res.end('Not found')}res.writeHead(200,{...securityHeaders,'content-type':types[path.extname(target).toLowerCase()]||'application/octet-stream','cache-control':noStore?'no-store':'public, max-age=3600','content-security-policy':"default-src 'self'; img-src 'self' data: https:; media-src 'self' https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self' https://*.blob.vercel-storage.com https://*.private.blob.vercel-storage.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"});res.end(data)});
 export const handler=async(req,res)=>{

@@ -92,6 +92,12 @@ img, video { display: block; max-width: 100%; }
 .auth-tabs button { min-height: 45px; border: 1px solid var(--line); border-radius: 12px; background: #f7f0e9; color: var(--muted); font-weight: 800; }
 .auth-tabs button.active { background: var(--wine); border-color: var(--wine); color: #fff; }
 .auth-panel form > .btn { width: 100%; margin-top: 16px; }
+.demo-banner { width: min(1180px,calc(100% - 40px)); margin: 16px auto 0; padding: 12px 16px; border: 1px solid #c9ac93; border-radius: 14px; background: #fff3e5; color: var(--wine); display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 12px; }
+.demo-banner b { font-size: 13px; }
+.demo-credentials { margin-top: 24px; padding: 17px; border: 1px solid var(--line); border-radius: 14px; background: #faf2e9; }
+.demo-credentials h3 { margin: 0 0 6px; color: var(--wine); }
+.demo-credentials p, .demo-credentials small { color: var(--muted); line-height: 1.6; }
+.demo-login-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
 
 .post { overflow: hidden; margin-bottom: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow); }
 .post-head { min-height: 68px; display: flex; align-items: center; gap: 11px; padding: 12px 16px; }
@@ -301,6 +307,7 @@ img, video { display: block; max-width: 100%; }
   .story-tray { padding: 13px 15px 15px; }
   .composer-prompt { margin: 0 12px 12px; }
   .inline-composer { margin: 0 12px 12px; padding: 14px; }
+  .demo-banner { width: calc(100% - 24px); margin: 12px auto; }
   .post { margin: 0 0 12px; border-left: 0; border-right: 0; border-radius: 0; box-shadow: none; }
   .post-media { aspect-ratio: 4 / 5; }
   .post-head { padding: 10px 13px; }

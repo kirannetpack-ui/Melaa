@@ -319,6 +319,12 @@ function account() {
 function render(scroll = true) {
   const views = { home, occasions, shop, wholesale, impact, messages, account };
   $('#content').innerHTML = (views[state.view] || home)();
+  if(state.data.user?.is_demo){
+    $('#content').insertAdjacentHTML('afterbegin','<div class="demo-banner" role="status"><b>Public demo · read-only</b><span>Explore the buyer or seller experience. To save, message or publish, sign out and register your own account.</span></div>');
+    $('#content').querySelectorAll('form button:not([type]), form button[type="submit"]').forEach(button=>{button.disabled=true;button.title='Demo accounts are read-only'});
+  }else if(state.view==='account'&&state.data.demo_available){
+    $('.auth-panel')?.insertAdjacentHTML('beforeend',`<div class="demo-credentials"><h3>Explore the public demo</h3><p>These shared accounts are read-only. The administrator login is private.</p><div class="demo-login-actions"><button type="button" class="small-btn" data-demo-login="buyer">Try buyer demo</button><button type="button" class="small-btn" data-demo-login="seller">Try seller demo</button></div><small>Buyer: buyer@melaa.local / DemoBuyer-2026!<br>Seller: maker@melaa.local / DemoSeller-2026!</small></div>`);
+  }
   document.querySelectorAll('[data-view]').forEach(button => button.classList.toggle('nav-active', button.dataset.view === state.view));
   document.querySelectorAll('.mobile-nav [data-view]').forEach(button => button.classList.toggle('nav-active', button.dataset.view === state.view));
   const seller = ['seller', 'admin'].includes(state.data.user?.role);
@@ -594,6 +600,9 @@ function addToCart(id, open = false) {
 }
 
 document.addEventListener('click', async event => {
+  const demoLogin=event.target.closest('[data-demo-login]');
+  if(demoLogin){try{const seller=demoLogin.dataset.demoLogin==='seller';await post('/login',{contact:seller?'maker@melaa.local':'buyer@melaa.local',password:seller?'DemoSeller-2026!':'DemoBuyer-2026!'});state.view='home';history.replaceState(null,'','#home');await refresh();toast('Public demo mode is read-only')}catch(error){toast(error.message)}return}
+  if(state.data.user?.is_demo&&event.target.closest('[data-like],[data-save],[data-follow],[data-recommend],[data-suggest-seller],[data-message-product],#checkout')){toast('Demo mode is read-only. Sign out to create your own account.');return}
   const togglePassword=event.target.closest('[data-password-toggle]');
   if(togglePassword){const input=togglePassword.closest('form')?.elements.password;if(input){input.type=input.type==='password'?'text':'password';togglePassword.textContent=input.type==='password'?'Show password':'Hide password'}return}
   if(event.target.closest('[data-show-seller-terms]')){openDrawer('Seller terms',sellerTermsHtml());return}
@@ -764,6 +773,7 @@ document.addEventListener('submit', async event => {
   const accepted = ['login-form', 'register-form', 'seller-terms-accept-form', 'seller-suggestion-form', 'event-form', 'rfq-form', 'product-form', 'post-form', 'rate-form', 'cause-form', 'comment-form', 'suggest-form', 'occasion-date-form', 'settings-form', 'category-proposal-form', 'commodity-proposal-form', 'message-form', 'chat-report-form', 'report-form'];
   if (!accepted.includes(form.id) && !form.classList.contains('quick-comment')) return;
   event.preventDefault();
+  if(state.data.user?.is_demo){toast('Demo mode is read-only. Sign out to create your own account.');return}
   const data = Object.fromEntries(new FormData(form));
   const submit = form.querySelector('button[type="submit"], button:not([type])');
   const originalText = submit?.textContent;

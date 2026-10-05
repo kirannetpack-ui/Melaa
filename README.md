@@ -22,6 +22,8 @@ Demo accounts for local development only:
 
 Set `MELAA_ADMIN_PASSWORD` and `MELAA_SELLER_PASSWORD` **before the initial database creation** to change these seed passwords. Existing database passwords are not reset when environment variables change. Never expose the development server to the public Internet. The production mode refuses to start without `MELAA_ADMIN_PASSWORD`; further security and deployment work is still required.
 
+The public production preview can expose two **read-only** accounts when `MELAA_ENABLE_PUBLIC_DEMO=1` is set in Vercel Production: buyer `buyer@melaa.local` / `DemoBuyer-2026!` and seller `maker@melaa.local` / `DemoSeller-2026!`. The login page offers one-click access. These accounts cannot publish, message, order, or change saved data. The public site does **not** use the local demo admin password; its admin password is a private Vercel secret. Existing local databases may have passwords changed after initial seeding, so the table above applies only to a fresh local database.
+
 ## What works in this version
 
 - A visible **Log in / Register** action and one short account form at a time. New members can use an email address (including Gmail) or an international-format phone number such as `+977…`, plus a Melaa password. This is **not Google OAuth or SMS login**; contact ownership is not yet verified and password recovery is not available.

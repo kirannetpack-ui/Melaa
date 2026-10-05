@@ -25,7 +25,7 @@ vercel env pull .env.production.local --yes --environment production --scope kir
 npm run migrate:catalog
 ```
 
-The schema and catalog have already been initialized this way. Production omits local demo sellers/products/posts. Set the password **before** first full migration; changing the environment variable later does not change an existing account password.
+The schema and catalog have already been initialized this way. Production omits local demo products/posts. With `MELAA_ENABLE_PUBLIC_DEMO=1` in the Production environment, the migration creates isolated read-only buyer and seller demo accounts; their documented passwords are reset during deployment, but the private admin password is never reset. Set the admin password **before** first full migration; changing the environment variable later does not change an existing admin account password.
 
 The `data/`, `.env*`, `.vercel/` and generated browser bundle are ignored by Git. Never commit pulled credentials. `npm test` covers local persistence and production-mode seed behavior.
 
