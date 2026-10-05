@@ -24,13 +24,14 @@ Set `MELAA_ADMIN_PASSWORD` and `MELAA_SELLER_PASSWORD` **before the initial data
 
 ## What works in this version
 
+- A visible **Log in / Register** action and one short account form at a time. New members can use an email address (including Gmail) or an international-format phone number such as `+977…`, plus a Melaa password. This is **not Google OAuth or SMS login**; contact ownership is not yet verified and password recovery is not available.
 - Customer registration and login, seller and admin roles, server-side sessions. Seller registration requires explicit acceptance of concise versioned terms; any actual fee requires a separate mutual written agreement before paid selling.
-- Strong-password rules, login throttling, strict session cookies, security headers, prepared SQL, server-side role/state enforcement, API rate limits, and moderation/audit records.
+- 15+ character passphrases without composition rules, login throttling, strict session cookies, security headers, prepared SQL, server-side role/state enforcement, API rate limits, and moderation/audit records.
 - Seller onboarding in a pending state; only an admin-verified seller can upload or create products and stories.
 - Mobile-first, Instagram-style discovery feed with maker story circles and Following / For You views. The feed loads reviewed posts in pages as people scroll, with an explicit search term, followed makers, limited engagement and recency used for ranking. It does not track hidden search history or promise limitless inventory.
 - Shoppable image and video posts with an in-post product card, price, stock state, one-tap add, product quick view and buy-now basket handoff.
 - Social actions: follow makers, like, comment, save, share, recommend, send private suggestions to sellers, and open a lightweight maker profile without losing the feed. Recommendations are community signals, **not** verified-purchase reviews. Sellers and admins can review suggestions.
-- Seller-friendly creation from the feed or account: mobile camera/file selection, local or private-cloud image/video upload, preview, caption, product tag and occasion tag.
+- Seller-friendly creation **inline on the feed** from its composer or the Create button: mobile camera/file selection, local or private-cloud image/video upload, preview, caption, product tag and occasion tag. Account/Profile retains product management, but is no longer a separate story-posting surface.
 - Buyer/seller Messenger with product-linked threads, mobile chat layout, unread counts, periodic refresh, message/conversation reporting, a prioritized admin report queue, off-platform contact/payment blocking, admin visibility, message hiding, and conversation closure APIs.
 - A 58-category directory spanning culture/occasion, season/region, community/ethnicity, food/agriculture, and craft/fashion/home, plus 39 starter commodity guides linked to official editorial sources.
 - Signed-in category and commodity proposals held for admin approval.

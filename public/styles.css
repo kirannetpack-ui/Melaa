@@ -46,7 +46,9 @@ img, video { display: block; max-width: 100%; }
 .desktop-nav button > span { font-size: 21px; line-height: 1; }
 .desktop-nav button small { font-size: 10px; font-weight: 700; }
 .desktop-nav button:hover, .desktop-nav .nav-active { color: var(--wine); background: #f6ede7; }
-.top-actions { display: flex; align-items: center; }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.top-actions .auth-shortcut { min-height: 40px; padding: 0 13px; border: 1px solid var(--wine); border-radius: 999px; background: var(--paper); color: var(--wine); font-size: 12px; font-weight: 800; white-space: nowrap; }
+.top-actions .auth-shortcut:hover { background: #f5e9e4; }
 .messenger-shortcut { position: relative; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px; background: var(--wine) !important; color: white !important; }
 .messenger-shortcut:hover,.messenger-shortcut.nav-active { background: var(--wine-deep) !important; }
 .messenger-icon { display: block; width: 25px; height: 25px; flex: none; }
@@ -78,6 +80,18 @@ img, video { display: block; max-width: 100%; }
 .avatar { width: 42px; height: 42px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--wine); color: white; font-weight: 800; }
 .composer-prompt button { flex: 1; min-height: 42px; border: 1px solid var(--line); border-radius: 999px; background: #f7f1e9; color: var(--muted); text-align: left; padding: 0 16px; }
 .composer-prompt .media-shortcut { flex: none; width: 44px; border: 0; color: var(--wine); font-size: 22px; text-align: center; padding: 0; }
+.inline-composer { margin: 0 0 18px; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--paper); box-shadow: var(--shadow); }
+.inline-composer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.inline-composer-head h3 { margin: 0; color: var(--wine); font: 700 21px 'Playfair Display',serif; }
+.inline-composer-head button { width: 36px; height: 36px; border: 0; border-radius: 50%; background: #f1e7dc; color: var(--wine); font-size: 23px; }
+.seller-story-link { padding: 22px; border-radius: 16px; background: #f8eee6; align-self: start; }
+.seller-story-link h3 { margin-top: 0; }
+.seller-story-link p { line-height: 1.6; color: var(--muted); }
+.auth-panel { max-width: 480px; margin: 0 auto; }
+.auth-tabs { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 24px; }
+.auth-tabs button { min-height: 45px; border: 1px solid var(--line); border-radius: 12px; background: #f7f0e9; color: var(--muted); font-weight: 800; }
+.auth-tabs button.active { background: var(--wine); border-color: var(--wine); color: #fff; }
+.auth-panel form > .btn { width: 100%; margin-top: 16px; }
 
 .post { overflow: hidden; margin-bottom: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow); }
 .post-head { min-height: 68px; display: flex; align-items: center; gap: 11px; padding: 12px 16px; }
@@ -276,6 +290,8 @@ img, video { display: block; max-width: 100%; }
   .global-search > span:last-child { display: none; }
   .desktop-nav { display: none; }
   .top-actions { grid-column: 3; gap: 5px; }
+  .top-actions .auth-shortcut { min-height: 36px; padding: 0 9px; font-size: 11px; }
+  .top-actions .auth-shortcut span { display: none; }
   .messenger-shortcut { width: 40px; height: 40px; border-radius: 12px; }
   .messenger-shortcut .messenger-icon { width: 23px; height: 23px; }
   .social-shell { width: 100%; margin: 0 auto 30px; display: block; }
@@ -284,6 +300,7 @@ img, video { display: block; max-width: 100%; }
   .feed-tabs { margin: 0 15px 13px; }
   .story-tray { padding: 13px 15px 15px; }
   .composer-prompt { margin: 0 12px 12px; }
+  .inline-composer { margin: 0 12px 12px; padding: 14px; }
   .post { margin: 0 0 12px; border-left: 0; border-right: 0; border-radius: 0; box-shadow: none; }
   .post-media { aspect-ratio: 4 / 5; }
   .post-head { padding: 10px 13px; }
@@ -317,6 +334,13 @@ img, video { display: block; max-width: 100%; }
 }
 
 @media (max-width: 430px) {
+  .top { gap: 5px; padding: 0 9px; }
+  .brand { font-size: 21px; }
+  .brand-mark { font-size: 26px; margin-right: 4px; }
+  .brand small { letter-spacing: 2px; }
+  .global-search { width: 34px; }
+  .top-actions .auth-shortcut { padding: 0 7px; }
+  .top-actions .messenger-shortcut, .top-actions .cart-button { width: 35px; min-width: 35px; }
   .story { flex-basis: 66px; width: 66px; min-width: 66px; }
   .story-ring { width: 60px; height: 60px; }
   .shoppable-tag { grid-template-columns: 44px 1fr auto; gap: 8px; }

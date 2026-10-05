@@ -31,6 +31,14 @@ test('social, commerce, research, and contribution gates',async()=>{
   assert.equal(shipping.shipping,230);
   const buyer=await request('/register',{name:'Buyer',email:'buyer@test.local',password:'LongPassword123!'});
   assert.equal(buyer.status,200);
+  const phoneBuyer=await request('/register',{name:'Phone Buyer',contact:'+977 9812345678',password:'a memorable long passphrase'});
+  assert.equal(phoneBuyer.status,200);
+  assert.equal(phoneBuyer.data.user.email,null);
+  assert.equal(phoneBuyer.data.user.phone_e164,'+9779812345678');
+  assert.equal((await request('/login',{contact:'+977-9812345678',password:'a memorable long passphrase'})).status,200);
+  assert.equal((await request('/register',{name:'Duplicate Phone',contact:'+9779812345678',password:'another long passphrase'})).status,409);
+  assert.equal((await request('/register',{name:'Invalid Phone',contact:'9812345678',password:'another long passphrase'})).status,400);
+  assert.equal((await request('/register',{name:'Short Password',contact:'short@test.local',password:'short-pass'})).status,400);
   const sellerId=boot.posts[0].author_id,postId=boot.posts[0].id;
   assert.equal((await request('/follows',{seller_id:sellerId},buyer.cookie)).data.following,true);
   assert.equal((await request('/posts/like',{post_id:postId},buyer.cookie)).data.liked,true);

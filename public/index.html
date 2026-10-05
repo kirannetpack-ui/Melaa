@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#651f37">
   <meta name="description" content="Discover Nepal's makers, stories and goods in one shoppable community.">
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/styles.css?v=7">
+  <link rel="stylesheet" href="/styles.css?v=8">
   <title>Melaa Nepal — Stories you can shop</title>
 </head>
 <body>
@@ -25,6 +25,7 @@
         <button id="account-toggle"><span aria-hidden="true">♙</span><small>Profile</small></button>
       </nav>
       <div class="top-actions">
+        <button id="auth-toggle" class="auth-shortcut" type="button">Log in <span>/ Register</span></button>
         <button class="messenger-shortcut" data-view="messages" aria-label="Open Messenger" title="Messenger"><svg class="messenger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5.5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 3v-3.5a2 2 0 0 1-1-1.7V7.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.5h9M7.5 13.5h6"/></svg><b class="messenger-count hidden" aria-hidden="true">0</b></button>
         <button id="cart-toggle" class="cart-button" aria-label="Open basket"><span aria-hidden="true">▣</span><b id="cart-count">0</b></button>
       </div>
@@ -34,6 +35,7 @@
       <button data-view="home"><span aria-hidden="true">⌂</span><small>Home</small></button>
       <button data-view="occasions"><span aria-hidden="true">◷</span><small>Occasions</small></button>
       <button data-view="shop"><span aria-hidden="true">◇</span><small>Shop</small></button>
+      <button id="mobile-create" class="mobile-create hidden" type="button" aria-label="Create a post"><span aria-hidden="true">＋</span><small>Create</small></button>
       <button data-view="messages" aria-label="Open Messenger"><svg class="messenger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5.5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 3v-3.5a2 2 0 0 1-1-1.7V7.5a2 2 0 0 1 2-2Z"/><path d="M7.5 10.5h9M7.5 13.5h6"/></svg><small>Messages</small><b class="messenger-count hidden" aria-hidden="true">0</b></button>
       <button id="mobile-profile"><span aria-hidden="true">♙</span><small>Profile</small></button>
     </nav>
@@ -41,6 +43,6 @@
     <aside id="drawer" class="drawer hidden" aria-live="polite"></aside>
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   </div>
-  <script type="module" src="/app.js?v=7"></script>
+  <script type="module" src="/app.js?v=8"></script>
 </body>
 </html>
