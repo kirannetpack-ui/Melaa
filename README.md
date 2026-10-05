@@ -1,6 +1,6 @@
 # Melaa Nepal — social commerce development foundation
 
-An installable, responsive social-commerce web app and SQLite-compatible API for discovering Nepalese makers through image and video stories, then shopping a tagged product without leaving the feed. Local development uses a SQLite file; Vercel uses Turso and private Vercel Blob storage. This is a **protected preview**, not a public production marketplace or native Android/iOS release.
+An installable, responsive social-commerce web app and SQLite-compatible API for discovering Nepalese makers through image and video stories, then shopping a tagged product without leaving the feed. Local development uses a SQLite file; Vercel uses Turso and private Vercel Blob storage. Production is a **publicly accessible development preview**, not a payment-enabled marketplace or native Android/iOS release.
 
 ## Run on Windows in `C:\Codex\Melaa`
 
@@ -51,9 +51,9 @@ Set `MELAA_ADMIN_PASSWORD` and `MELAA_SELLER_PASSWORD` **before the initial data
 
 No payment is taken, no donation is transferred, and no recipient is presented as approved. Checkout records `awaiting_payment` orders without reserving inventory. Rates and products are illustrative; the international zone is indicative only. Occasion records are research candidates unless a specific year is reviewed and cited. Text moderation is deliberately a baseline and cannot guarantee detection of fake people/products, pornography or every evasion. The project does not yet include legally sufficient KYC/KYB, specialist image/video/hash moderation, livestreaming, media transcoding or cloud quarantine, delivered notifications, carrier integration, country-specific product eligibility, refunds, payout reconciliation, tax invoices, verified-purchase reviews, password recovery/email verification, or native mobile binaries. Current feed ranking is a simple transparent rule, not a mature recommender system.
 
-Before public deployment, follow [SECURITY.md](SECURITY.md), [CONTENT_SAFETY.md](CONTENT_SAFETY.md), [MARKETPLACE_OPERATIONS.md](MARKETPLACE_OPERATIONS.md), and [ADMIN_GUIDE.md](ADMIN_GUIDE.md). The prototype's styles, source-backed taxonomy and example content are design scaffolding, not a verified seller inventory.
+Before accepting real transactions or broadly promoting seller onboarding, follow [SECURITY.md](SECURITY.md), [CONTENT_SAFETY.md](CONTENT_SAFETY.md), [MARKETPLACE_OPERATIONS.md](MARKETPLACE_OPERATIONS.md), and [ADMIN_GUIDE.md](ADMIN_GUIDE.md). The prototype's styles, source-backed taxonomy and example content are design scaffolding, not a verified seller inventory.
 
-The GitHub repository and Vercel project are connected; see [FEATURE_STATUS.md](FEATURE_STATUS.md) for completed versus remaining functions and [DEPLOYMENT.md](DEPLOYMENT.md) for the protected deployment, migration procedure, and launch gates.
+The GitHub repository and Vercel project are connected; see [FEATURE_STATUS.md](FEATURE_STATUS.md) for completed versus remaining functions and [DEPLOYMENT.md](DEPLOYMENT.md) for the deployment, migration procedure, and launch gates.
 
 ## Social-commerce design direction
 
