@@ -329,6 +329,8 @@ function render(scroll = true) {
   document.querySelectorAll('.mobile-nav [data-view]').forEach(button => button.classList.toggle('nav-active', button.dataset.view === state.view));
   const seller = ['seller', 'admin'].includes(state.data.user?.role);
   $('#auth-toggle')?.classList.toggle('hidden', Boolean(state.data.user));
+  $('#logout-shortcut')?.classList.toggle('hidden', !state.data.user);
+  $('#mobile-logout')?.classList.toggle('hidden', !state.data.user);
   $('#create-toggle')?.classList.toggle('hidden', !seller);
   $('#mobile-create')?.classList.toggle('hidden', !seller);
   if (state.view === 'shop') filterProducts();
@@ -733,7 +735,7 @@ document.addEventListener('click', async event => {
   }
   const remove = event.target.closest('[data-remove]');
   if (remove) { state.cart = state.cart.filter(item => item.product_id !== Number(remove.dataset.remove)); saveCart(); await cartDrawer(); return; }
-  if (event.target.closest('#logout')) { await post('/logout', {}); await refresh(); toast('Signed out'); return; }
+  if (event.target.closest('#logout, #logout-shortcut, #mobile-logout')) { await post('/logout', {}); await refresh(); toast('Signed out'); return; }
   if (event.target.closest('#checkout')) {
     if (!state.data.user) { closeDrawer(); state.view = 'account'; render(); toast('Sign in to record the order'); return; }
     try {
