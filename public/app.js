@@ -1,3 +1,4 @@
+import { courierPage, countryPicker, countryMatches, cardCategory, deliveryCategories, chargeRow } from './courier-admin.js?v=1';
 const $ = selector => document.querySelector(selector);
 const money = value => `NPR ${Number(value || 0).toLocaleString('en-US')}`;
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -7,7 +8,7 @@ const symbols = ['🧣', '🥟', '🎨', '🪔', '📓', '🌶️', '🎁', '�
 
 const state = {
   data: null,
-  view: ['home','occasions','shop','wholesale','impact','messages','account'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home',
+  view: ['home','occasions','shop','wholesale','impact','messages','account','courier'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home',
   filter: 'All',
   query: '',
   feedMode: 'for-you',
@@ -19,9 +20,17 @@ const state = {
   feedGeneration: 0,
   authMode: 'login',
   composerOpen: false,
+  composeKind: 'post',
+  composeDraft: '',
   cart: JSON.parse(localStorage.getItem('melaa-cart') || '[]'),
   zone: 'Kathmandu Valley',
   shippingRuleId: null,
+  deliveryCategory: 'kathmandu_valley',
+  deliveryCountry: 'Nepal',
+  deliveryProvince: 'Bagmati Province',
+  deliveryDistrict: 'Kathmandu',
+  quoteGeneration: 0,
+  courierDraft: {id:null,category:'kathmandu_valley',countries:[],query:'',mode:'zone'},
   ship: null,
   me: null,
   conversations: [],
@@ -145,11 +154,11 @@ function postCard(item) {
     <header class="post-head">
       <button class="avatar" data-maker="${item.author_id}" aria-label="View ${esc(item.author)}">${initials(item.author)}</button>
       <button class="post-author" data-maker="${item.author_id}" style="border:0;background:none;text-align:left;padding:0">
-        <b>${esc(item.author)}</b><span>${esc(item.occasion || 'Maker story')} · Nepal</span>
+        <b>${esc(item.author)}</b><span>${esc(item.content_kind==='live'?'Live broadcast':item.content_kind==='status'?'Status update':item.content_kind==='story'?'Story':item.content_kind==='post'?'Post':item.occasion || 'Maker story')} · Nepal</span>
       </button>
       ${own ? '<span class="pill">Your post</span>' : `<button class="follow-btn ${item.following ? 'following' : ''}" data-follow="${item.author_id}">${item.following ? 'Following' : 'Follow'}</button>`}
     </header>
-    <div class="post-media">${postMedia(item)}</div>
+    ${item.media_url || item.product_id ? `<div class="post-media">${postMedia(item)}</div>` : ''}
     <div class="post-body">
       <div class="action-row">
         <button class="icon-action ${item.liked ? 'liked' : ''}" data-like="${item.id}" aria-label="${item.liked ? 'Unlike' : 'Like'} post" aria-pressed="${Boolean(item.liked)}">${item.liked ? '♥' : '♡'}</button>
@@ -161,7 +170,7 @@ function postCard(item) {
         <button class="icon-action save-action" data-save="${item.id}" aria-label="${item.saved ? 'Remove from saved' : 'Save post'}" aria-pressed="${Boolean(item.saved)}">${item.saved ? '▣' : '▢'}</button>
       </div>
       <div class="like-count">${Number(item.likes).toLocaleString()} ${Number(item.likes) === 1 ? 'like' : 'likes'} · ${Number(item.recommendations||0)} ${Number(item.recommendations||0) === 1 ? 'recommendation' : 'recommendations'} <span class="subtle">· Member signals, not verified purchases</span></div>
-      <p class="caption"><b>${esc(item.author)}</b>${esc(item.caption)}</p>
+      <p class="caption"><b>${esc(item.author)}</b> ${esc(item.caption)}${item.live_url && /^https?:\/\//i.test(item.live_url) ? `<a class="live-broadcast-link" href="${esc(item.live_url)}" target="_blank" rel="noopener noreferrer">${publishIcon('live')} Watch broadcast ↗</a>` : ''}</p>
       ${shoppableTag(item)}
       <button class="comment-link" data-comments="${item.id}">View ${item.comments || 0} ${Number(item.comments) === 1 ? 'comment' : 'comments'}</button>
       <form class="quick-comment" data-id="${item.id}"><input name="body" maxlength="500" placeholder="Add a comment…" aria-label="Add a comment"><button>Post</button></form>
@@ -211,7 +220,7 @@ function home() {
       ${storyTray()}
       <div class="feed-tabs"><button class="${state.feedMode === 'for-you' ? 'active' : ''}" data-feed-mode="for-you">For you</button><button class="${state.feedMode === 'following' ? 'active' : ''}" data-feed-mode="following">Following</button></div>
       <label class="feed-search-label">Find stories <input id="feed-search" class="search" type="search" maxlength="80" placeholder="Try Dhaka, Tihar, pottery…" value="${esc(state.feedQuery)}"></label>
-      ${isSeller ? `<div class="composer-prompt"><span class="avatar">${initials(state.data.user.name)}</span><button data-open-compose>Share a story, photo or video…</button><button class="media-shortcut" data-open-compose aria-label="Add photo or video">▧</button></div>${state.composerOpen ? `<div class="inline-composer"><div class="inline-composer-head"><h3>Create a story</h3><button type="button" data-close-compose aria-label="Close story composer">×</button></div>${composerForm()}</div>` : ''}` : ''}
+      <section class="publish-card" aria-label="Share with the community"><div class="composer-prompt"><span class="avatar">${initials(state.data.user?.name)}</span><button data-open-compose>What would you like to share?</button></div><div class="publish-actions">${[['post','Post'],['story','Story'],['status','Status'],['photo','Photo'],['video','Video'],['live','Live link']].map(([kind,label])=>`<button type="button" data-compose-kind="${kind}">${publishIcon(kind)}<span>${label}</span></button>`).join('')}</div></section>${state.composerOpen ? `<div class="inline-composer"><div class="inline-composer-head"><h3>Share with your community</h3><button type="button" data-close-compose aria-label="Close composer">×</button></div>${composerForm()}</div>` : ''}
       <div id="feed-list">${posts.map(postCard).join('')}</div><div id="feed-status" class="feed-status" aria-live="polite">${state.feedLoading ? 'Loading stories…' : ''}</div><div id="feed-sentinel"></div>
       <button id="feed-more" class="btn ghost ${state.feedHasMore ? '' : 'hidden'}" type="button">Load more stories</button>
     </section>
@@ -268,7 +277,7 @@ function sellerPanel() {
     <p><button class="text-link" data-show-seller-terms>Review your seller terms</button> · <span class="subtle">Live broadcasting is not enabled; uploaded videos can be tagged to approved products and occasions.</span></p>
     <div class="split">
       <form id="product-form">
-        <label class="field">Product photo<input name="media" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label>
+        <label class="field">Product photo<input name="media" type="file" accept="image/jpeg,image/png,image/webp"></label>
         <div class="media-preview hidden"></div>
         <label class="field">Title<input name="title" required maxlength="150"></label>
         <label class="field">Description<textarea name="description"></textarea></label>
@@ -276,7 +285,7 @@ function sellerPanel() {
         <label class="field">Occasion<select name="occasion_id"><option value="">None</option>${state.data.occasions.map(item => `<option value="${item.id}">${esc(item.name)}</option>`).join('')}</select></label>
         <div class="split"><label class="field">Price NPR<input name="price" type="number" min="1" required></label><label class="field">Stock<input name="stock" type="number" min="0" required></label></div>
         <div class="split"><label class="field">Optional wholesale NPR / unit<input name="wholesale_price" type="number" min="1" placeholder="Leave blank if not offered"></label><label class="field">Minimum wholesale quantity<input name="moq" type="number" min="2" value="2"></label></div>
-        <label class="field">Packed weight grams<input name="weight_g" type="number" min="1" required></label>
+        <label class="field">Packing method<select name="packaging_mode" id="product-packaging"><option value="packed">Measured packed parcel</option><option value="auto">Estimate packaging from product type</option><option value="soft">Estimate protective pouch</option><option value="standard">Estimate protective carton</option><option value="fragile">Estimate fragile protective carton</option></select><span class="subtle" id="packing-help">Enter total weight including packaging and the outer parcel dimensions.</span></label><label class="field"><span id="product-weight-label">Packed weight grams</span><input name="weight_g" type="number" min="1" required></label>
         <div class="split"><label class="field">Length cm<input name="length_cm" type="number" min="1" required></label><label class="field">Width cm<input name="width_cm" type="number" min="1" required></label></div>
         <label class="field">Height cm<input name="height_cm" type="number" min="1" required></label>
         <button class="btn">Create product</button>
@@ -291,26 +300,29 @@ function sellerTermsHtml() {
   return `<div class="seller-terms"><span class="eyebrow">Seller terms · ${esc(terms.version)}</span><ol>${terms.clauses.map(clause=>`<li>${esc(clause)}</li>`).join('')}</ol><p class="subtle">Draft for Nepalese legal review before public launch. Payment and payout services are not active.</p></div>`;
 }
 
+function publishIcon(kind) {
+  const paths = {post:'M12 5v14M5 12h14',story:'M12 3a9 9 0 1 0 9 9M16 3h5v5M16 8l5-5',status:'M5 6h14M5 12h10M5 18h7',photo:'M4 4h16v16H4zM4 16l5-5 4 4 3-3 4 4M15 8h.01',video:'M3 6h12v12H3zM15 10l6-4v12l-6-4',live:'M8 8a6 6 0 0 0 0 8M4 4a12 12 0 0 0 0 16M16 8a6 6 0 0 1 0 8M20 4a12 12 0 0 1 0 16M12 12h.01'};
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[kind] || paths.post}"/></svg>`;
+}
+
 function composerForm() {
-  return `<form id="post-form">
+  return `<form id="post-form"><input type="hidden" name="content_kind" value="${['photo','video'].includes(state.composeKind)?'post':state.composeKind}"><p class="composer-context">${esc({post:'Create a post',story:'Share a story',status:'Update your status',photo:'Share a photo',video:'Share a video',live:'Share a live broadcast link'}[state.composeKind])}</p>${state.composeKind==='live'?'<label class="field">Broadcast link<input name="live_url" type="url" placeholder="https://…" required><span class="subtle">Share a broadcast hosted on your streaming service.</span></label>':''}
     <div class="upload-drop"><div><b>Tap to add a photo or video</b><p class="subtle">JPG, PNG or WebP up to 10 MB · MP4 up to 25 MB</p><input name="media" type="file" accept="image/jpeg,image/png,image/webp,video/mp4" capture="environment"></div></div>
     <div class="media-preview hidden"></div>
-    <label class="field">Caption<textarea name="caption" maxlength="2000" placeholder="Tell people what they are seeing and why it matters…" required></textarea></label>
+    <label class="field">Caption<textarea name="caption" maxlength="2000" placeholder="Tell people what they are seeing and why it matters…" required>${esc(state.composeDraft)}</textarea></label>
     <label class="field">Tag one of your approved products<select name="product_id"><option value="">No product</option>${state.data.products.filter(item=>item.seller_id===state.data.user?.id).map(item => `<option value="${item.id}">${esc(item.title)} · ${money(item.price)}</option>`).join('')}</select></label>
     <label class="field">Tag an occasion<select name="occasion_id"><option value="">No occasion</option>${state.data.occasions.map(item => `<option value="${item.id}">${esc(item.name)}</option>`).join('')}</select></label>
-    <button class="btn">Publish story</button>
+    <button class="btn">Submit for publishing</button>
     <p class="subtle">Stories enter the admin review queue before they become public.</p>
   </form>`;
 }
 
-function shippingBandFields(){return Array.from({length:20},(_,i)=>{const weight=((i+1)/2).toFixed(1).replace('.0','');return `<label class="field"><span>${weight} kg flat NPR</span><input name="band_${weight}" type="number" min="0" required value="0"></label>`}).join('')}
-function provinceOptions(){return Object.keys(state.data.nepal_destinations||{}).map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('')}
-function countryOptions(){return (state.data.international_countries||[]).map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('')}
 function adminPanel() {
   return `<div class="panel" style="margin-top:22px"><h3>Admin control center</h3><p>One queue for seller identity, products, posts, catalog proposals, conversations and recorded moderation events.</p><div id="admin-data">Loading…</div><div id="admin-review-queues"></div><div class="split">
     <form id="settings-form"><h3>Marketplace economics</h3><label class="field">Retail commission %<input name="retail_commission_percent" type="number" min="0" max="30" step="0.1" required></label><label class="field">Wholesale commission %<input name="wholesale_commission_percent" type="number" min="0" max="30" step="0.1" required></label><label class="field">Payout hold days<input name="payout_hold_days" type="number" min="0" max="30" required></label><button class="btn">Save commercial rules</button><p class="subtle">A payment provider must enforce split settlement and delayed payouts in production.</p></form>
-    <form id="shipping-rule-form"><h3>Courier rate card</h3><p class="subtle">Create a named domestic district, international country, or international zone rule. Reuse a name to update it.</p><label class="field">Rate-card name<input name="name" maxlength="120" placeholder="Koshi — Jhapa / DHL Zone A" required></label><label class="field">Destination type<select name="scope" id="shipping-scope"><option value="domestic">Nepal outside Valley</option><option value="international">International country or zone</option></select></label><div id="domestic-destination"><label class="field">Province<select name="province" id="shipping-province"><option value="">All provinces outside Valley</option>${provinceOptions()}</select></label><label class="field">District<select name="district" id="shipping-district"><option value="">All districts in this province</option></select></label></div><div id="international-destination" class="hidden"><label class="field">Countries in this rate card<select name="countries" multiple size="7">${countryOptions()}</select></label><p class="subtle">Select one country for an individual rate, or several countries for a zone.</p></div><label class="field">Volumetric divisor<input name="divisor" type="number" min="1" value="5000" required></label><label class="field">Minimum chargeable kg<input name="minimum_kg" type="number" min="0.5" step="0.5" value="0.5" required></label><h4>Flat rate for each 0.5 kg band, through 10 kg</h4><div class="rate-band-grid">${shippingBandFields()}</div><label class="field">Base per kg after 10 kg<input name="over_10_per_kg" type="number" min="0" value="0" required></label><div id="shipping-charges"><h4>Additional charge above 10 kg</h4><div class="shipping-charge-row"><input name="charge_name" maxlength="80" placeholder="e.g. Remote-area handling"><input name="charge_above_kg" type="number" min="0" step="0.5" value="10"><select name="charge_kind"><option value="flat">Flat NPR</option><option value="per_kg">NPR per kg</option></select><input name="charge_amount_npr" type="number" min="0" placeholder="Amount"></div></div><button type="button" class="small-btn" data-add-shipping-charge>Add another charge</button><button class="btn">Save courier rate card</button><p class="subtle">A shipping quote remains provisional until carrier serviceability, taxes, restricted goods and pickup availability are confirmed.</p></form>
+
   </div></div>
+  <section class="panel courier-link"><h3>Courier rate cards</h3><p>Manage Kathmandu Valley, Nepal Outside Valley and International Destinations from the delivery page.</p><button class="btn" data-view="courier">Manage courier rates →</button></section>
   <div class="panel" style="margin-top:22px"><h3>Cultural research desk</h3><p>Annual dates need a cited source and human review.</p><form id="occasion-date-form" class="split"><div><label class="field">Occasion<select name="occasion_id">${state.data.occasions.map(item => `<option value="${item.id}">${esc(item.name)}</option>`).join('')}</select></label><label class="field">Bikram Sambat year<input name="bs_year" type="number" min="2000" max="2200" required></label></div><div><label class="field">Gregorian date<input name="gregorian_date" type="date" required></label><label class="field">Evidence URL<input name="source_url" type="url" required></label><button class="btn">Save reviewed date</button></div></form><div id="research-submissions"></div></div>`;
 }
 
@@ -321,7 +333,7 @@ function account() {
 }
 
 function render(scroll = true) {
-  const views = { home, occasions, shop, wholesale, impact, messages, account };
+  const views = { home, occasions, shop, wholesale, impact, messages, account, courier:()=>courierPage(state.data,state.courierDraft) };
   $('#content').innerHTML = (views[state.view] || home)();
   if(state.data.user?.is_demo){
     $('#content').insertAdjacentHTML('afterbegin','<div class="demo-banner" role="status"><b>Public demo · read-only</b><span>Explore the buyer or seller experience. To save, message or publish, sign out and register your own account.</span></div>');
@@ -448,25 +460,32 @@ function closeDrawer() {
   document.body.style.overflow = '';
 }
 
+function deliveryDestination() { return {delivery_category:state.deliveryCategory,country:state.deliveryCountry,...(state.deliveryCountry==='Nepal'?{province:state.deliveryProvince,district:state.deliveryDistrict}:{})}; }
+function destinationFields() {
+ const category=state.deliveryCategory,valley=category==='kathmandu_valley',international=category==='international';
+ const categorySelect=`<label class="field">Delivery category<select id="delivery-category">${Object.entries(deliveryCategories).map(([key,label])=>`<option value="${key}" ${key===category?'selected':''}>${label}</option>`).join('')}</select></label>`;
+ if(international)return categorySelect+`<label class="field">Destination country<select id="delivery-country"><option value="">Choose country</option>${state.data.international_countries.filter(name=>name!=='Nepal').map(name=>`<option ${name===state.deliveryCountry?'selected':''}>${esc(name)}</option>`).join('')}</select></label>`;
+ const districts=valley?['Kathmandu','Bhaktapur','Lalitpur']:(state.data.nepal_destinations[state.deliveryProvince]||[]).filter(name=>!['Kathmandu','Bhaktapur','Lalitpur'].includes(name));
+ return categorySelect+`<div class="${valley?'':'split'}">${valley?'':`<label class="field">Province<select id="delivery-province"><option value="">Choose province</option>${Object.keys(state.data.nepal_destinations).map(name=>`<option ${name===state.deliveryProvince?'selected':''}>${esc(name)}</option>`).join('')}</select></label>`}<label class="field">District<select id="delivery-district"><option value="">Choose district</option>${districts.map(name=>`<option ${name===state.deliveryDistrict?'selected':''}>${esc(name)}</option>`).join('')}</select></label></div>`;
+}
 async function cartDrawer() {
-  const lines = state.cart.map(item => ({ ...item, product: product(item.product_id) })).filter(item => item.product);
-  const subtotal = lines.reduce((sum, item) => sum + item.product.price * item.qty, 0);
-  let shipping = 0;
-  try {
-    if (lines.length) {
-      const selected=state.data.shipping_rules?.find(item=>item.id===Number(state.shippingRuleId))||state.data.shipping_rules?.find(item=>item.name===state.zone)||state.data.shipping_rules?.[0];
-      state.ship = await post('/quote-shipping', { items: state.cart, shipping_rule_id:selected?.id, zone:selected?.name||state.zone });
-      shipping = state.ship.shipping;
-    }
-  } catch (error) { toast(error.message); }
-  openDrawer('Your basket', `${lines.length ? lines.map(item => `<div class="drawer-item"><div class="mini-art">${imageOrArt(item.product)}</div><div style="flex:1"><b>${esc(item.product.title)}</b><p>${money(item.product.price)} · ${item.product.weight_g} g packed/unit</p><div class="qty"><button data-qty="${item.product.id}" data-change="-1">−</button>${item.qty}<button data-qty="${item.product.id}" data-change="1">+</button><button class="text-link" data-remove="${item.product.id}">Remove</button></div></div></div>`).join('') : '<div class="empty">Your basket is waiting for something meaningful.</div>'}<div class="summary"><label class="field">Delivery destination<select id="delivery-zone">${(state.data.shipping_rules||[]).map(item => `<option value="${item.id}" ${Number(item.id) === Number(state.shippingRuleId) || !state.shippingRuleId&&item.name===state.zone ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label><div class="summary-row"><span>Products</span><b>${money(subtotal)}</b></div><div class="summary-row"><span>Delivery estimate</span><b>${money(shipping)}</b></div><div class="summary-row"><strong>Estimated total</strong><strong>${money(subtotal + shipping)}</strong></div><p class="subtle">${state.ship ? `Chargeable weight ${state.ship.chargeable_kg} kg · ${state.ship.breakdown.map(item=>`${esc(item.name)}: ${money(item.amount)}`).join(' · ')}. Quote is provisional.` : ''}</p><div class="notice">No payment is taken in this preview. Contributions remain optional and disabled.</div><button class="btn" id="checkout" style="width:100%;margin-top:16px" ${lines.length ? '' : 'disabled'}>Record order · payment pending</button></div>`);
+ const generation=++state.quoteGeneration;
+ const lines=state.cart.map(item=>({...item,product:product(item.product_id)})).filter(item=>item.product);
+ const subtotal=lines.reduce((sum,item)=>sum+item.product.price*item.qty,0);
+ state.ship=null;
+ let quote=null,quoteError='';
+ try { if(lines.length)quote=await post('/quote-shipping',{items:state.cart,...deliveryDestination()}); }
+ catch(error){quoteError=error.message;}
+ if(generation!==state.quoteGeneration)return;
+ state.ship=quote;
+ openDrawer('Your basket',`${lines.length?lines.map(item=>`<div class="drawer-item"><div class="mini-art">${imageOrArt(item.product)}</div><div style="flex:1"><b>${esc(item.product.title)}</b><p>${money(item.product.price)} · ${item.product.weight_g} g ${item.product.packaging_mode && item.product.packaging_mode!=='packed'?'before packaging':'packed/unit'}</p><div class="qty"><button data-qty="${item.product.id}" data-change="-1">−</button>${item.qty}<button data-qty="${item.product.id}" data-change="1">+</button><button class="text-link" data-remove="${item.product.id}">Remove</button></div></div></div>`).join(''):'<div class="empty">Your basket is waiting for something meaningful.</div>'}<div class="summary">${destinationFields()}${quote?`<div class="notice">Matched rate card: <b>${esc(quote.rate_card)}</b></div>`:''}<div class="summary-row"><span>Products</span><b>${money(subtotal)}</b></div><div class="summary-row"><span>Delivery estimate</span><b>${quote?money(quote.shipping):'Quote required'}</b></div><div class="summary-row"><strong>${quote?'Estimated total':'Products total'}</strong><strong>${money(subtotal+(quote?.shipping||0))}</strong></div>${quoteError?`<p role="status" class="notice">${esc(quoteError)}</p>`:''}${quote?`<div class="shipping-explanation"><h3>How delivery is calculated</h3><p>${quote.shipments.length} seller dispatch${quote.shipments.length===1?'':'es'} · Actual packed weight ${quote.actual_kg} kg · Volumetric weight ${quote.volumetric_kg} kg · Chargeable weight <b>${quote.chargeable_kg} kg</b></p>${quote.parcels.map(parcel=>`<div class="parcel-detail"><b>${esc(parcel.title)} × ${parcel.qty}</b><span>${esc(parcel.packaging)}${parcel.estimated?' · estimated':''}</span><span>${parcel.dimensions_cm.join(' × ')} cm · ${parcel.actual_kg} kg packed · ${parcel.chargeable_kg_per_unit} kg billed per parcel</span></div>`).join('')}<p class="subtle">${esc(quote.packing_basis)} ${quote.packaging_estimated?'Packaging allowances are estimates; the seller must confirm final measurements.':''}</p>${quote.breakdown.map(item=>`<div class="summary-row"><span>${esc(item.name)}</span><b>${money(item.amount)}</b></div>`).join('')}<p class="subtle">Carrier confirmation, customs, taxes and serviceability may change the final price.</p></div>`:''}<div class="notice">No payment is taken in this preview. Contributions remain optional and disabled.</div><button class="btn" id="checkout" style="width:100%;margin-top:16px" ${lines.length&&quote?'':'disabled'}>Record order · payment pending</button></div>`);
 }
 
 function productDrawer(id) {
   const item = product(id);
   if (!item) return;
   const canMessage=state.data.user?.id!==item.seller_id;
-  openDrawer(item.title, `<div class="card-image" style="height:330px;border-radius:16px">${imageOrArt(item)}</div><p class="pill" style="margin-top:16px">${esc(item.category)} · ${esc(item.origin)}</p><h2 style="font:700 34px 'Playfair Display';color:var(--wine);margin:10px 0">${esc(item.title)}</h2><p>${esc(item.description)}</p><p><b>By ${esc(item.seller)}</b><br><span class="subtle">${item.stock} in stock · ${item.weight_g} g packed</span></p><div class="summary-row"><strong>${money(item.price)}</strong><span>${esc(item.occasion || 'Everyday craft')}</span></div><div class="form-actions"><button class="btn" data-buy-now="${item.id}">Buy now</button><button class="btn ghost" data-add="${item.id}">Add to basket</button>${canMessage?`<button class="btn ghost" data-message-product="${item.id}">Message seller</button><button class="btn ghost" data-report="product" data-id="${item.id}">Report listing</button>`:''}</div><p class="subtle">Keep messages and orders on Melaa so buyer protection and admin review can work.</p>`);
+  openDrawer(item.title, `<div class="card-image" style="height:330px;border-radius:16px">${imageOrArt(item)}</div><p class="pill" style="margin-top:16px">${esc(item.category)} · ${esc(item.origin)}</p><h2 style="font:700 34px 'Playfair Display';color:var(--wine);margin:10px 0">${esc(item.title)}</h2><p>${esc(item.description)}</p><p><b>By ${esc(item.seller)}</b><br><span class="subtle">${item.stock} in stock · ${item.weight_g} g ${item.packaging_mode && item.packaging_mode!=='packed'?'before packaging':'packed'}</span></p><div class="summary-row"><strong>${money(item.price)}</strong><span>${esc(item.occasion || 'Everyday craft')}</span></div><div class="form-actions"><button class="btn" data-buy-now="${item.id}">Buy now</button><button class="btn ghost" data-add="${item.id}">Add to basket</button>${canMessage?`<button class="btn ghost" data-message-product="${item.id}">Message seller</button><button class="btn ghost" data-report="product" data-id="${item.id}">Report listing</button>`:''}</div><p class="subtle">Keep messages and orders on Melaa so buyer protection and admin review can work.</p>`);
 }
 
 function categoryDrawer(id) {
@@ -523,14 +542,18 @@ function suggestionDrawer(id) {
   openDrawer('Suggest to the maker', `<p>Send a private, constructive idea about <b>${esc(item.product || item.caption.slice(0,60))}</b>. The seller and Melaa admin can review it.</p><form id="seller-suggestion-form" data-id="${item.id}"><label class="field">Idea type<select name="kind"><option value="customization">Customization</option><option value="restock">Restock or size</option><option value="packaging">Packaging or gifting</option><option value="product_idea">New product idea</option><option value="other">Other feedback</option></select></label><label class="field">Your suggestion<textarea name="body" minlength="10" maxlength="600" required placeholder="What would make this product more useful for you?"></textarea></label><button class="btn">Send to seller</button></form><p class="subtle">No contact details or off-platform payment requests.</p>`);
 }
 
-function openFeedComposer(chooseMedia = false) {
+function openFeedComposer(chooseMedia = false, kind = 'post') {
   if (!state.data.user) { state.authMode='register'; state.view='account'; history.replaceState(null,'','#account'); render(); toast('Register as a maker to share stories'); return; }
   if (!['seller', 'admin'].includes(state.data.user.role)) { toast('A maker account is required to publish'); return; }
   if(state.data.user.role==='seller'&&state.data.user.seller_status!=='verified'){state.view='account';history.replaceState(null,'','#account');render();toast('Admin verification is required before publishing');return}
   if(state.data.user.role==='seller'&&state.data.user.accepted_terms_version!==state.data.seller_terms.version){state.view='account';history.replaceState(null,'','#account');render();toast('Accept the current seller terms before publishing');return}
+  state.composeKind=kind;
   state.composerOpen=true;
   state.view='home';history.replaceState(null,'','#home');render();
-  if(chooseMedia)$('#post-form input[name="media"]')?.click();else $('#post-form textarea[name="caption"]')?.focus();
+  const media=$('#post-form input[name="media"]');
+  if(media && kind==='photo')media.accept='image/jpeg,image/png,image/webp';
+  if(media && kind==='video')media.accept='video/mp4';
+  if(chooseMedia)media?.click();else $('#post-form textarea[name="caption"]')?.focus();
 }
 
 function searchDrawer() {
@@ -617,6 +640,20 @@ document.addEventListener('click', async event => {
   const authMode=event.target.closest('[data-auth-mode]');
   if(authMode){state.authMode=authMode.dataset.authMode;render(false);return}
   if(event.target.closest('#auth-toggle')){state.authMode='login';state.view='account';history.replaceState(null,'','#account');render();return}
+  const editCourier=event.target.closest('[data-edit-courier]');
+  if(editCourier){const card=state.data.shipping_rules.find(item=>item.id===Number(editCourier.dataset.editCourier));if(card){state.courierDraft={id:card.id,category:cardCategory(card),countries:card.countries.filter(name=>state.data.international_countries.includes(name)&&name!=='Nepal'),query:'',mode:card.international_mode||'zone'};render();}return;}
+  if(event.target.closest('[data-new-courier]')){state.courierDraft={id:null,category:state.courierDraft.category,countries:[],query:'',mode:'zone'};render();return;}
+  const removeCountry=event.target.closest('[data-remove-country]');
+  if(removeCountry){state.courierDraft.countries=state.courierDraft.countries.filter(name=>name!==removeCountry.dataset.removeCountry);$('#courier-country-picker').innerHTML=countryPicker(state.data,state.courierDraft);$('#courier-country-search').focus();return;}
+  if(event.target.closest('[data-fill-courier-rates]')){
+    const first=$('#courier-first-rate'),step=$('#courier-step-rate');if(first.value===''||step.value===''||!first.checkValidity()||!step.checkValidity()){toast('Enter a valid first rate and additional rate.');return;}
+    for(let index=0;index<20;index++)$('#shipping-rule-form').elements['band_'+(index+1)/2].value=(Number(first.value)+index*Number(step.value)).toFixed(2);
+    $('#courier-fill-status').textContent='Filled all 20 bands. Review or adjust before saving.';return;
+  }
+  if(event.target.closest('[data-add-courier-charge]')){$('#shipping-charges').insertAdjacentHTML('beforeend',chargeRow());return;}
+  if(event.target.closest('[data-remove-charge]')){event.target.closest('.shipping-charge-row').remove();return;}
+  const composeAction=event.target.closest('[data-compose-kind]');
+  if(composeAction){const kind=composeAction.dataset.composeKind;openFeedComposer(['photo','video'].includes(kind),kind);return}
   if(event.target.closest('[data-close-compose]')){state.composerOpen=false;render(false);return}
   const reviewedSuggestion=event.target.closest('[data-suggestion-reviewed]');
   if(reviewedSuggestion){try{await post('/suggestions/status',{id:Number(reviewedSuggestion.dataset.suggestionReviewed),status:'reviewed'});await loadAccount();toast('Suggestion marked reviewed')}catch(error){toast(error.message)}return}
@@ -740,7 +777,7 @@ document.addEventListener('click', async event => {
   }
   const remove = event.target.closest('[data-remove]');
   if (remove) { state.cart = state.cart.filter(item => item.product_id !== Number(remove.dataset.remove)); saveCart(); await cartDrawer(); return; }
-  if (event.target.closest('#logout, #logout-shortcut, #mobile-logout')) { await post('/logout', {}); await refresh(); toast('Signed out'); return; }
+  if (event.target.closest('#logout, #logout-shortcut, #mobile-logout')) { await post('/logout', {}); state.composeDraft='';state.composerOpen=false; await refresh(); toast('Signed out'); return; }
   if (event.target.closest('#checkout')) {
     if (!state.data.user) { closeDrawer(); state.view = 'account'; render(); toast('Sign in to record the order'); return; }
     try {
@@ -752,6 +789,8 @@ document.addEventListener('click', async event => {
 });
 
 document.addEventListener('input', event => {
+  if(event.target.id==='courier-country-search'){state.courierDraft.query=event.target.value;$('#courier-country-picker').innerHTML=countryPicker(state.data,state.courierDraft);return}
+  if(event.target.closest('#post-form') && event.target.name==='caption')state.composeDraft=event.target.value;
   if (event.target.id === 'feed-search') { clearTimeout(state.feedSearchTimer); const value=event.target.value; state.feedSearchTimer=setTimeout(()=>{state.feedQuery=value.trim();resetFeed();const list=$('#feed-list');if(list){list.innerHTML='';$('#feed-status').textContent='Searching reviewed stories…';$('#feed-more').classList.remove('hidden');setupFeed()}},350); }
   if (event.target.id === 'product-search') { state.query = event.target.value; filterProducts(); }
   if (event.target.id === 'occasion-search') { state.query = event.target.value; filterOccasions(); }
@@ -759,10 +798,40 @@ document.addEventListener('input', event => {
 });
 
 document.addEventListener('change', event => {
+  if(event.target.id==='delivery-category'){
+    state.deliveryCategory=event.target.value;
+    if(state.deliveryCategory==='international'){state.deliveryCountry='';}
+    else{state.deliveryCountry='Nepal';state.deliveryProvince=state.deliveryCategory==='kathmandu_valley'?'Bagmati Province':'';state.deliveryDistrict=state.deliveryCategory==='kathmandu_valley'?'Kathmandu':'';}
+    cartDrawer();return;
+  }
+
+  if(event.target.id==='courier-category'){
+    const category=event.target.value,old=state.courierDraft.category;state.courierDraft.category=category;
+    const international=category==='international';$('#courier-international').classList.toggle('hidden',!international);$('#courier-domestic-options').classList.toggle('hidden',category!=='nepal_outside_valley');
+    $('#courier-name-label').textContent=international?'Zone / rate-card name':'Rate-card name';
+    const name=$('#courier-card-name');if(!name.value||name.value===deliveryCategories[old])name.value=international?'':deliveryCategories[category];
+    $('#courier-coverage').textContent=international?'Name the zone exactly as on your courier tariff, then assign its countries.':category==='kathmandu_valley'?'Covers Kathmandu, Bhaktapur and Lalitpur delivery districts.':'Covers Nepal delivery districts outside Kathmandu, Bhaktapur and Lalitpur.';return;
+  }
+  if(event.target.id==='courier-grouping'){
+    state.courierDraft.mode=event.target.value;
+    if(event.target.value==='country'&&state.courierDraft.countries.length>1){state.courierDraft.countries=state.courierDraft.countries.slice(0,1);toast('Individual-country cards cover one country. Kept the first selected country.');}
+    $('#courier-country-picker').innerHTML=countryPicker(state.data,state.courierDraft);return;
+  }
+  if(event.target.matches('[data-zone-country]')){
+    const country=event.target.dataset.zoneCountry,draft=state.courierDraft;
+    draft.countries=event.target.checked?(draft.mode==='country'?[country]:[...new Set([...draft.countries,country])]):draft.countries.filter(name=>name!==country);
+    $('#courier-country-picker').innerHTML=countryPicker(state.data,draft);Array.from(document.querySelectorAll('[data-zone-country]')).find(input=>input.dataset.zoneCountry===country)?.focus();return;
+  }
+
+  if(event.target.id==='delivery-country'){state.deliveryCountry=event.target.value;cartDrawer();return}
+  if(event.target.id==='delivery-province'){state.deliveryProvince=event.target.value;state.deliveryDistrict='';cartDrawer();return}
+  if(event.target.id==='delivery-district'){state.deliveryDistrict=event.target.value;cartDrawer();return}
+  if(event.target.id==='product-packaging'){const packed=event.target.value==='packed';$('#product-weight-label').textContent=packed?'Packed weight grams':'Product weight grams, without packaging';$('#packing-help').textContent=packed?'Enter total weight including packaging and the outer parcel dimensions.':'Enter unpacked product dimensions. Melaa adds estimated packaging weight and protective space.';return}
+
   if(event.target.id==='join-role'){const seller=event.target.value==='seller';$('#seller-terms-box')?.classList.toggle('hidden',!seller);const check=$('#seller-terms-box input[name="accept_seller_terms"]');if(check)check.required=seller;return}
   if (event.target.id === 'delivery-zone') { state.shippingRuleId=Number(event.target.value);state.zone=state.data.shipping_rules?.find(item=>item.id===state.shippingRuleId)?.name||state.zone; cartDrawer(); return; }
   if(event.target.id==='shipping-scope'){const international=event.target.value==='international';$('#domestic-destination')?.classList.toggle('hidden',international);$('#international-destination')?.classList.toggle('hidden',!international);return}
-  if(event.target.id==='shipping-province'){const districts=state.data.nepal_destinations?.[event.target.value]||[];const select=$('#shipping-district');if(select)select.innerHTML=`<option value="">All districts in this province</option>${districts.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('')}`;return}
+  if(event.target.id==='shipping-province'){const districts=(state.data.nepal_destinations?.[event.target.value]||[]).filter(name=>state.view!=='courier'||!['Kathmandu','Bhaktapur','Lalitpur'].includes(name));const select=$('#shipping-district');if(select)select.innerHTML=`<option value="">All districts in this province</option>${districts.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('')}`;return}
   if (event.target.matches('input[type="file"][name="media"]')) {
     const file = event.target.files?.[0];
     const preview = event.target.closest('form')?.querySelector('.media-preview');
@@ -774,9 +843,16 @@ document.addEventListener('change', event => {
 });
 
 document.addEventListener('click', event => {
-  if(event.target.closest('[data-add-shipping-charge]')){const holder=$('#shipping-charges');if(holder)holder.insertAdjacentHTML('beforeend','<div class="shipping-charge-row"><input name="charge_name" maxlength="80" placeholder="Charge name"><input name="charge_above_kg" type="number" min="0" step="0.5" value="10"><select name="charge_kind"><option value="flat">Flat NPR</option><option value="per_kg">NPR per kg</option></select><input name="charge_amount_npr" type="number" min="0" placeholder="Amount"></div>');return}
+  if(event.target.closest('[data-add-shipping-charge]')){const holder=$('#shipping-charges');if(holder)holder.insertAdjacentHTML('beforeend','<div class="shipping-charge-row"><input aria-label="Charge name" name="charge_name" maxlength="80" placeholder="Charge name"><input aria-label="Applies above weight in kg" name="charge_above_kg" type="number" min="0" step="0.5" value="10"><select aria-label="Charge calculation" name="charge_kind"><option value="flat">Flat NPR</option><option value="per_kg">NPR per kg</option></select><input aria-label="Charge amount in NPR" name="charge_amount_npr" type="number" min="0" placeholder="Amount"></div>');return}
   const filter = event.target.closest('[data-filter]');
   if (filter) { state.filter = filter.dataset.filter; render(); }
+});
+
+document.addEventListener('keydown',event=>{
+  if(event.target.id!=='courier-country-search'||event.key!=='Enter')return;
+  event.preventDefault();const draft=state.courierDraft,matches=countryMatches(state.data,draft),country=matches.find(name=>name.toLowerCase()===draft.query.trim().toLowerCase())||(matches.length===1?matches[0]:null);
+  if(!country){toast('Choose a matching country from the list.');return;}
+  draft.countries=draft.mode==='country'?[country]:[...new Set([...draft.countries,country])];draft.query='';event.target.value='';$('#courier-country-picker').innerHTML=countryPicker(state.data,draft);
 });
 
 document.addEventListener('submit', async event => {
@@ -825,15 +901,17 @@ document.addEventListener('submit', async event => {
       const file = form.elements.media.files?.[0];
       if (file) { const uploaded = await uploadFile(file); data.media_url = uploaded.url; data.media_type = uploaded.media_type; }
       delete data.media;
-      const result=await post('/posts', data); state.composerOpen=false; state.view = 'home'; history.replaceState(null,'','#home'); await refresh(); toast(result.status==='review'?'Story submitted for admin review':'Your story is live');
+      const result=await post('/posts', data); state.composeDraft='';state.composerOpen=false; state.view = 'home'; history.replaceState(null,'','#home'); await refresh(); toast(result.status==='review'?'Story submitted for admin review':'Your story is live');
     } else if (form.id === 'rate-form') {
       await post('/admin/rates', data); await refresh({ keepPosition: true }); toast('Rate updated');
     } else if (form.id === 'shipping-rule-form') {
-      data.countries=Array.from(form.elements.countries?.selectedOptions||[]).map(option=>option.value);
+      data.countries=data.delivery_category==='international'?[...state.courierDraft.countries]:[];
+      data.scope=data.delivery_category==='international'?'international':'domestic';
+      if(data.delivery_category!=='nepal_outside_valley'){data.province='';data.district='';}
       data.bands=Array.from({length:20},(_,i)=>{const to=(i+1)/2;return {from_kg:i/2,to_kg:to,kind:'flat',amount_npr:Number(form.elements[`band_${String(to).replace('.0','')}`].value)}});
       const names=Array.from(form.querySelectorAll('input[name="charge_name"]')),aboves=Array.from(form.querySelectorAll('input[name="charge_above_kg"]')),kinds=Array.from(form.querySelectorAll('select[name="charge_kind"]')),amounts=Array.from(form.querySelectorAll('input[name="charge_amount_npr"]'));
       data.charges=names.map((node,index)=>({name:node.value,above_kg:Number(aboves[index].value),kind:kinds[index].value,amount_npr:Number(amounts[index].value||0)})).filter(item=>item.name.trim());
-      ['divisor','minimum_kg','over_10_per_kg'].forEach(key=>data[key]=Number(data[key]));await post('/admin/shipping-rules',data);await refresh({keepPosition:true});toast('Courier rate card saved');
+      ['divisor','minimum_kg','over_10_per_kg','billing_increment_kg'].forEach(key=>data[key]=Number(data[key]));const saved=await post('/admin/shipping-rules',data);state.courierDraft.id=saved.id;await refresh({keepPosition:true});toast('Courier rate card saved');
     } else if (form.id === 'cause-form') {
       await post('/admin/causes', data); await loadAccount(); form.reset(); toast('Recipient added to review');
     } else if (form.id === 'suggest-form') {

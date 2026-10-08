@@ -371,3 +371,89 @@ img, video { display: block; max-width: 100%; }
   .card-image { height: 145px; }
   .quick-comment { display: none; }
 }
+/* Refined surfaces retain Melaa's wine, cream and terracotta palette. */
+body { line-height: 1.55; -webkit-font-smoothing: antialiased; }
+.social-shell { width: min(1280px, calc(100% - 48px)); grid-template-columns: 200px minmax(0, 1fr) 260px; gap: 28px; }
+.post, .panel, .card { box-shadow: 0 8px 30px rgba(64,35,37,.055); }
+.post { overflow: hidden; border-radius: 22px; margin-bottom: 24px; }
+.post-head { padding: 20px 22px; }
+.post-body { padding: 20px 22px; }
+.post-author b { font-size: 15px; }
+.post-author span { font-size: 12px; }
+.post-media img, .post-media video { width: 100%; object-fit: cover; }
+.panel { padding: 28px; }
+.field { gap: 8px; font-size: 13px; font-weight: 600; }
+.field input, .field select, .field textarea { min-height: 48px; border-radius: 12px; background: var(--paper); }
+.field textarea { min-height: 132px; line-height: 1.6; resize: vertical; }
+.btn, .small-btn { min-height: 44px; }
+.publish-card { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; margin-bottom: 22px; overflow: hidden; box-shadow: var(--shadow); }
+.publish-card .composer-prompt { border: 0; margin: 0; box-shadow: none; padding: 18px; }
+.publish-actions { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); padding: 10px; gap: 4px; border-top: 1px solid var(--line); }
+.publish-actions button { border: 0; background: transparent; border-radius: 12px; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--wine); font-size: 11px; font-weight: 700; }
+.publish-actions button:hover { background: #f6ede7; }
+.publish-actions svg, .live-broadcast-link svg { width: 24px; height: 24px; }
+.composer-context { margin: 0 0 16px; color: var(--wine); font-weight: 700; }
+.live-broadcast-link { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 12px 16px; border-radius: 12px; background: #f6ede7; color: var(--wine); font-weight: 700; }
+.courier-panel { margin-top: 24px; }
+.courier-heading h3 { font-size: 28px; margin: 8px 0; }
+.courier-form { max-width: 940px; margin: auto; }
+.courier-form fieldset { min-width: 0; margin: 24px 0; padding: 22px; border: 1px solid var(--line); border-radius: 16px; }
+.courier-form legend { padding: 0 10px; color: var(--wine); font-size: 14px; font-weight: 700; }
+.courier-form .rate-band-grid { grid-template-columns: repeat(5,minmax(0,1fr)); max-height: none; overflow: visible; border: 0; background: transparent; gap: 12px; padding: 0; }
+.courier-form .rate-band-grid input { min-height: 48px; }
+.courier-form .shipping-charge-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; }
+.courier-form .shipping-charge-row input, .courier-form .shipping-charge-row select { width: 100%; min-width: 0; min-height: 48px; }
+@media (max-width: 1100px) { .social-shell { grid-template-columns: 180px minmax(0,1fr); } .social-shell > aside:last-child { display: none; } }
+@media (max-width: 760px) {
+ .social-shell { width: min(650px,calc(100% - 24px)); grid-template-columns: minmax(0,1fr); margin-top: 16px; }
+ .social-sidebar { display: none; }
+ .panel { padding: 20px; }
+ .post-head, .post-body { padding: 16px; }
+ .publish-actions { grid-template-columns: repeat(3,minmax(0,1fr)); }
+ .courier-form fieldset { padding: 14px; }
+ .courier-form .rate-band-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+ .courier-form .shipping-charge-row { grid-template-columns: 1fr 1fr; }
+ input, select, textarea { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+.shipping-explanation { margin: 20px 0; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--cream); }
+.shipping-explanation h3 { margin: 0 0 10px; font-size: 18px; color: var(--wine); }
+.parcel-detail { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--line); }
+.parcel-detail span { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+/* Dedicated courier administration. */
+.courier-workspace { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1fr); align-items: start; gap: 24px; }
+.courier-entry { min-width: 0; }
+.courier-entry .courier-form { max-width: none; }
+.courier-heading h2 { margin: 8px 0; font: 700 28px 'Playfair Display', serif; color: var(--wine); }
+.courier-entry .courier-form fieldset { margin: 22px 0; padding: 20px; }
+.country-selected { display: flex; flex-wrap: wrap; gap: 8px; min-height: 34px; align-items: center; }
+.country-chip { border: 1px solid var(--line); padding: 8px 12px; border-radius: 999px; background: #f6ede7; color: var(--wine); min-height: 44px; display: flex; align-items: center; gap: 10px; }
+.country-results { max-height: 240px; overflow-y: auto; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px; border: 1px solid var(--line); border-radius: 12px; padding: 8px; }
+.country-option { display: flex; align-items: center; gap: 10px; padding: 10px; min-height: 48px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+.country-option:has(input:checked) { background: #f6ede7; color: var(--wine); }
+.country-option input { accent-color: var(--wine); width: 18px; height: 18px; flex: none; }
+.country-option span { overflow-wrap: anywhere; }
+.quick-rate-builder { background: var(--cream); padding: 16px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 18px; }
+.quick-rate-builder p { margin-top: 0; font-size: 13px; }
+.courier-entry .courier-form .rate-band-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.courier-advanced { padding: 18px; border: 1px solid var(--line); border-radius: 14px; }
+.courier-advanced summary, #courier-domestic-options summary { cursor: pointer; color: var(--wine); font-weight: 700; min-height: 44px; padding: 10px 0; }
+.courier-weight-settings { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.courier-save-row { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 24px; }
+.courier-saved { display: grid; gap: 20px; min-width: 0; }
+.courier-saved h2 { margin-top: 0; font-size: 22px; }
+.saved-rate-group + .saved-rate-group { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 14px; }
+.saved-rate-group h3 { font-size: 16px; color: var(--wine); }
+.saved-rate-card { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 0; }
+.saved-rate-card b { overflow-wrap: anywhere; }
+.saved-rate-card p { font-size: 12px; color: var(--muted); margin: 5px 0 0; }
+.saved-rate-card .small-btn { flex: none; }
+.courier-guide ol { padding-left: 20px; line-height: 1.8; font-size: 14px; }
+@media (max-width: 1000px) { .courier-workspace { grid-template-columns: minmax(0,1fr); } }
+@media (max-width: 600px) {
+ .courier-entry .courier-form fieldset { padding: 14px; }
+ .courier-entry .courier-form .rate-band-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+ .country-results { grid-template-columns: minmax(0,1fr); }
+ .courier-weight-settings { grid-template-columns: minmax(0,1fr); }
+ .courier-entry .courier-form .shipping-charge-row { grid-template-columns: minmax(0,1fr); }
+}
